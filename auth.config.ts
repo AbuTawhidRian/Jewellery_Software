@@ -11,7 +11,9 @@ export const authConfig = {
   },
   cookies: {
     sessionToken: {
-      name: `__Secure-next-auth.session-token`,
+      name: process.env.NODE_ENV === 'production' 
+        ? `__Secure-next-auth.session-token` 
+        : `next-auth.session-token`,
       options: {
         httpOnly: true,
         sameSite: 'lax',
@@ -23,11 +25,11 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }: { auth: any; request: any }) {
       const isLoggedIn = !!auth?.user;
-      const isOnDashboard = nextUrl.pathname.startsWith('/');
+      const isOnDashboard = nextUrl.pathname.startsWith('/dashboard');
       const isAuthPage = nextUrl.pathname.startsWith('/login') || nextUrl.pathname.startsWith('/register');
 
       if (isAuthPage) {
-          if (isLoggedIn) return Response.redirect(new URL('/', nextUrl)); // Redirect to dashboard if already logged in
+          if (isLoggedIn) return Response.redirect(new URL('/dashboard', nextUrl)); // Redirect to dashboard if already logged in
           return true;
       }
 

@@ -9,26 +9,35 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
   ...authConfig,
   providers: [
     Credentials({
-      credentials: {},
+      credentials: {
+        email: {},
+        password: {},
+      },
       async authorize(credentials) {
+        console.log("Authorize called with:", credentials?.email);
         const parsedCredentials = z
-          .object({ email: z.string().email(), password: z.string().min(6) })
+          .object({ email: z.string().email(), password: z.string().min(1) })
           .safeParse(credentials);
 
         if (parsedCredentials.success) {
           const { email, password } = parsedCredentials.data;
           const user = await prisma.user.findUnique({ where: { email } });
+          
+          console.log("User found:", user ? "YES" : "NO");
+          
           if (!user) return null;
           
-          // Note: In a real app we would check user.passwordHash. 
-          // For the seed user, the hash is a placeholder string. 
-          // If you created a user via register page, it has a real bcrypt hash.
-          // Since we are using bcryptjs now, make sure the seed hash is valid or register a new user.
-          
-          if (!user.passwordHash) return null;
+          if (!user.passwordHash) {
+             console.log("User has no password hash");
+             return null;
+          }
 
           const passwordsMatch = await comparePassword(password, user.passwordHash);
+          console.log("Password match:", passwordsMatch);
+          
           if (passwordsMatch) return user;
+        } else {
+            console.log("Zod parsing failed", parsedCredentials.error);
         }
 
         console.log('Invalid credentials');

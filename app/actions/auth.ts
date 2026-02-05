@@ -132,43 +132,38 @@ export async function login(prevState: ActionState, formData: FormData): Promise
     const { email, password } = validation.data
 
     // Rate limiting: 5 login attempts per 15 minutes per email
-    const identifier = `login:${email}`
-    const { success: rateLimitOk } = await loginRateLimiter.limit(identifier)
+    // const identifier = `login:${email}`
+    // const { success: rateLimitOk } = await loginRateLimiter.limit(identifier)
     
-    if (!rateLimitOk) {
-        return { error: 'Too many login attempts. Please try again in 15 minutes.' }
-    }
+    // if (!rateLimitOk) {
+    //     return { error: 'Too many login attempts. Please try again in 15 minutes.' }
+    // }
 
     try {
-        // Always fetch user and perform password comparison to prevent timing attacks
-        const user = await prisma.user.findUnique({
-            where: { email }
-        })
-
-        // Use a dummy hash for non-existent users to maintain constant time
-        const hashToCompare = user?.passwordHash || '$2a$10$dummyhashfornonexistentusertopreventtimingattacks'
-        
-        // Always perform password comparison (even if user doesn't exist)
-        const passwordsMatch = await comparePassword(password, hashToCompare)
-
-        // Check both conditions together to prevent user enumeration
-        if (!user || !user.passwordHash || !passwordsMatch) {
-            return { error: 'Invalid credentials' }
-        }
-
-        // Authenticate with NextAuth
+        // Let NextAuth handle authentication (it has its own password verification)
         await signIn('credentials', {
            email,
            password,
-           redirect: false
+           redirectTo: '/dashboard'
         })
         
         return { success: true }
 
     } catch (error) {
+        // We need to check for Digest redirect errors
+        const isRedirect = (error as Error).message === 'NEXT_REDIRECT' || 
+                           (error as Error).name === 'NextjsRedirect' ||
+                           (error as any)?.code === 'NEXT_REDIRECT' ||
+                           (error as any)?.digest?.includes('NEXT_REDIRECT');
+
+        if (isRedirect) {
+            throw error;
+        }
+
         if ((error as Error).message.includes('CredentialsSignin')) {
             return { error: 'Invalid credentials' }
         }
+        
         // Log error securely without exposing details
         if (error instanceof Error) {
             console.error('[Login Error]', { message: error.message, email })
