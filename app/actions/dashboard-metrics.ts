@@ -29,7 +29,6 @@ export async function getDashboardMetrics() {
      return {
         goldBalance: 0,
         cashBalance: 0,
-        pendingOrders: 0,
         totalCustomers: 0
      }
   }
@@ -53,13 +52,20 @@ export async function getDashboardMetrics() {
   let goldBalance = 0
   goldTransactions.forEach(t => {
       const weight = Number(t.weight)
-      if (t.type === 'RECEIVE_GOLD' || t.type === 'JEWELLERY_RETURN') {
+      if (t.type === 'RECEIVE') {
           goldBalance += weight
-      } else if (t.type === 'USE_FOR_JEWELLERY' || t.type === 'JEWELLERY_DELIVERY') {
+      } else if (t.type === 'PAY') {
           goldBalance -= weight
       }
-      // Adjustment could be + or - in real world, usually stored as signed in db or separate column.
-      // For now ignore or assume positive if not specified.
+      // ADJUSTMENT might be positive or negative, but usually implied by the context.
+      // For now, let's treat it as neutral or handle if needed.
+      // If adjustment is positive in DB, we might want to add, but we don't know the intent without a sign.
+      // Assuming 'weight' is always positive in DB, we depend on type.
+      // If adjustment adds gold, it should probably be RECEIVE or a specific ADJ_IN type.
+      if (t.type === 'ADJUSTMENT') {
+          // crude assumption: it adds
+          goldBalance += weight 
+      }
   })
 
 
@@ -72,20 +78,14 @@ export async function getDashboardMetrics() {
   let cashBalance = 0
   cashTransactions.forEach(t => {
       const amount = Number(t.amount)
-      if (t.type === 'RECEIVE_PAYMENT' || t.type === 'OTHER') {
+      if (t.type === 'RECEIVE') {
           cashBalance += amount
       } else {
           cashBalance -= amount
       }
   })
 
-  // 3. Pending Orders
-  const pendingOrders = await prisma.jewelleryOrder.count({
-    where: {
-        ...(companyId ? { companyId } : { company: { tenantId } }),
-        status: { in: ['PENDING', 'IN_PROGRESS'] }
-    }
-  })
+
 
   // 4. Total Customers
   const totalCustomers = await prisma.customer.count({
@@ -95,7 +95,6 @@ export async function getDashboardMetrics() {
   return {
     goldBalance: goldBalance.toFixed(3),
     cashBalance: cashBalance.toFixed(2),
-    pendingOrders,
     totalCustomers
   }
 }
@@ -147,9 +146,9 @@ export async function getGoldBreakdown() {
     let netWeight = 0
     
     // Calculate net weight based on transaction type
-    if (t.type === 'RECEIVE_GOLD' || t.type === 'JEWELLERY_RETURN') {
+    if (t.type === 'RECEIVE') {
       netWeight = weight
-    } else if (t.type === 'USE_FOR_JEWELLERY' || t.type === 'JEWELLERY_DELIVERY') {
+    } else if (t.type === 'PAY') {
       netWeight = -weight
     }
 
@@ -175,36 +174,7 @@ export async function getGoldBreakdown() {
 }
 
 
-export async function getRecentActivity() {
-    const session = await auth()
-    if (!session?.user?.email) return []
 
-    const user = await prisma.user.findUnique({
-        where: { email: session.user.email },
-        select: { companyId: true, tenantId: true }
-    })
-    
-    const companyId = user?.companyId
-    const tenantId = user?.tenantId
-
-    if (!tenantId) return []
-
-    // Fetch latest orders
-    const recentOrders = await prisma.jewelleryOrder.findMany({
-        where: companyId ? { companyId } : { company: { tenantId } },
-        take: 5,
-        orderBy: { createdAt: 'desc' },
-        include: { customer: true }
-    })
-
-    return recentOrders.map(order => ({
-        id: order.id,
-        type: 'ORDER',
-        description: `Order #${order.orderNo} for ${order.customer.name}`,
-        date: order.createdAt,
-        status: order.status
-    }))
-}
 
 export async function getChartData() {
     // Mock data for now as we don't have historical aggregates easily available without raw SQL or heavy processing

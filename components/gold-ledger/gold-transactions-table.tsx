@@ -30,7 +30,6 @@ interface GoldTransaction {
   purity: any
   notes: string | null
   customer: { id: string; name: string } | null
-  order: { id: string; orderNo: string } | null
 }
 
 interface GoldTransactionsTableProps {
@@ -68,9 +67,8 @@ export function GoldTransactionsTable({ transactions }: GoldTransactionsTablePro
       const query = searchQuery.toLowerCase()
       const matchesCustomer = transaction.customer?.name.toLowerCase().includes(query)
       const matchesNotes = transaction.notes?.toLowerCase().includes(query)
-      const matchesOrder = transaction.order?.orderNo.toLowerCase().includes(query)
       
-      if (!matchesCustomer && !matchesNotes && !matchesOrder) {
+      if (!matchesCustomer && !matchesNotes) {
         return false
       }
     }
@@ -85,7 +83,7 @@ export function GoldTransactionsTable({ transactions }: GoldTransactionsTablePro
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search by customer, notes, or order..."
+            placeholder="Search by customer or notes..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -98,11 +96,10 @@ export function GoldTransactionsTable({ transactions }: GoldTransactionsTablePro
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="RECEIVE_GOLD">Receive Gold</SelectItem>
-            <SelectItem value="USE_FOR_JEWELLERY">Use for Jewellery</SelectItem>
-            <SelectItem value="JEWELLERY_DELIVERY">Jewellery Delivery</SelectItem>
-            <SelectItem value="JEWELLERY_RETURN">Jewellery Return</SelectItem>
+            <SelectItem value="RECEIVE">Receive (Gold In)</SelectItem>
+            <SelectItem value="PAY">Pay (Gold Out)</SelectItem>
             <SelectItem value="ADJUSTMENT">Adjustment</SelectItem>
+
           </SelectContent>
         </Select>
 

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import * as z from 'zod'
+import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -30,6 +30,7 @@ import { updateCompanySettings } from '@/app/actions/settings'
 import { CURRENCIES } from '@/lib/currencies'
 import { CurrencyMultiSelect } from './currency-multi-select'
 import { KaratEditor } from './karat-editor'
+import { AccountEditor } from './account-editor'
 
 const settingsSchema = z.object({
   name: z.string().min(1, 'Company name is required'),
@@ -84,10 +85,11 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="currency">Currency</TabsTrigger>
             <TabsTrigger value="gold">Gold Standards</TabsTrigger>
+            <TabsTrigger value="accounts">Accounts</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general">
@@ -241,6 +243,10 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                 />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="accounts">
+            <AccountEditor />
           </TabsContent>
         </Tabs>
 

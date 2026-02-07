@@ -39,7 +39,6 @@ export async function getCustomers() {
       },
       _count: {
         select: {
-          orders: true,
           goldTransactions: true,
           cashTransactions: true
         }
@@ -69,10 +68,7 @@ export async function getCustomer(id: string) {
     },
     include: {
       company: true,
-      orders: {
-        orderBy: { createdAt: 'desc' },
-        take: 10
-      },
+
       goldTransactions: {
         orderBy: { date: 'desc' },
         take: 10
@@ -166,17 +162,7 @@ export async function deleteCustomer(id: string) {
     throw new Error('Insufficient permissions')
   }
 
-  // Check if customer has orders
-  const customerWithOrders = await prisma.customer.findUnique({
-    where: { id },
-    select: {
-      _count: { select: { orders: true } }
-    }
-  })
 
-  if (customerWithOrders && customerWithOrders._count.orders > 0) {
-    throw new Error('Cannot delete customer with existing orders')
-  }
 
   await prisma.customer.delete({
     where: {

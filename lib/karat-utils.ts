@@ -70,14 +70,10 @@ export function formatPurity(purity: number, customMappings?: Record<string, num
  */
 export function getTransactionTypeColor(type: string): string {
   switch (type) {
-    case 'RECEIVE_GOLD':
+    case 'RECEIVE':
       return 'bg-green-100 text-green-800 border-green-200'
-    case 'USE_FOR_JEWELLERY':
+    case 'PAY':
       return 'bg-blue-100 text-blue-800 border-blue-200'
-    case 'JEWELLERY_DELIVERY':
-      return 'bg-purple-100 text-purple-800 border-purple-200'
-    case 'JEWELLERY_RETURN':
-      return 'bg-orange-100 text-orange-800 border-orange-200'
     case 'ADJUSTMENT':
       return 'bg-gray-100 text-gray-800 border-gray-200'
     default:
@@ -87,19 +83,15 @@ export function getTransactionTypeColor(type: string): string {
 
 /**
  * Format transaction type for display
- * @param type - GoldTransactionType
+ * @param type - TransactionType
  * @returns Human-readable transaction type
  */
 export function formatTransactionType(type: string): string {
   switch (type) {
-    case 'RECEIVE_GOLD':
-      return 'Receive Gold'
-    case 'USE_FOR_JEWELLERY':
-      return 'Use for Jewellery'
-    case 'JEWELLERY_DELIVERY':
-      return 'Jewellery Delivery'
-    case 'JEWELLERY_RETURN':
-      return 'Jewellery Return'
+    case 'RECEIVE':
+      return 'Receive'
+    case 'PAY':
+      return 'Pay'
     case 'ADJUSTMENT':
       return 'Adjustment'
     default:

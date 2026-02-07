@@ -30,7 +30,6 @@ type Customer = {
   email: string | null
   company: { name: string }
   _count: {
-    orders: number
     goldTransactions: number
     cashTransactions: number
   }
@@ -73,7 +72,6 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
               <TableHead>Phone</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Company</TableHead>
-              <TableHead className="text-right">Orders</TableHead>
               <TableHead className="text-right">Transactions</TableHead>
               <TableHead className="w-[70px]"></TableHead>
             </TableRow>
@@ -81,7 +79,7 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   No customers found
                 </TableCell>
               </TableRow>
@@ -96,7 +94,6 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
                   <TableCell>{customer.phone || '-'}</TableCell>
                   <TableCell>{customer.email || '-'}</TableCell>
                   <TableCell>{customer.company.name}</TableCell>
-                  <TableCell className="text-right">{customer._count.orders}</TableCell>
                   <TableCell className="text-right">
                     {customer._count.goldTransactions + customer._count.cashTransactions}
                   </TableCell>

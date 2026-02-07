@@ -21,12 +21,7 @@ export default async function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button asChild size="sm">
-            <Link href="/orders/new">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              New Order
-            </Link>
-          </Button>
+
           <Button asChild variant="outline" size="sm">
             <Link href="/customers">
               <Users className="mr-2 h-4 w-4" />
@@ -37,7 +32,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Metrics Grid with Colored Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
         {/* Gold Balance Card - Amber/Yellow */}
         <Card className="bg-amber-50 border-amber-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -107,36 +102,7 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Active Orders Card - Purple */}
-        <Card className="bg-purple-50 border-purple-200">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-purple-900">Active Orders</CardTitle>
-            <Package className="h-5 w-5 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-purple-900">{metrics.pendingOrders}</div>
-            <p className="text-xs text-purple-700 mt-1">
-              Orders in progress
-            </p>
-            {/* Order Status Breakdown */}
-            <div className="mt-4 space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-purple-800">
-                  <span className="w-2 h-2 rounded-full bg-purple-400"></span>
-                  Pending
-                </span>
-                <span className="font-medium text-purple-900">1</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-purple-800">
-                  <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                  In Production
-                </span>
-                <span className="font-medium text-purple-900">1</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+
       </div>
 
       {/* Secondary Stats */}
@@ -163,16 +129,7 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-xs text-muted-foreground">Orders this month</p>
-          </CardContent>
-        </Card>
+
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

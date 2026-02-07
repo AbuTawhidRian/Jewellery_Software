@@ -1,0 +1,8 @@
+[2026-02-07T08:32:18.426Z] getGoldStats Error: Unauthorized
+Error: Unauthorized
+    at getGoldStats (E:\E_drive\Rian\Next Js\Jewellery Software\.next\dev\server\chunks\ssr\[root-of-the-server]__302b5d3b._.js:217:19)
+    at async Promise.all (index 1)
+[2026-02-07T08:32:19.125Z] getGoldStats Error: Unauthorized
+Error: Unauthorized
+    at getGoldStats (E:\E_drive\Rian\Next Js\Jewellery Software\.next\dev\server\chunks\ssr\[root-of-the-server]__302b5d3b._.js:217:19)
+    at async Promise.all (index 1)

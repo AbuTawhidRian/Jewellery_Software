@@ -28,23 +28,26 @@ import { toast } from 'sonner'
 interface AddGoldTransactionDialogProps {
   children: React.ReactNode
   customers?: Array<{ id: string; name: string }>
+  vendors?: Array<{ id: string; name: string }>
   customKarats?: Record<string, number>
 }
 
 export function AddGoldTransactionDialog({ 
   children, 
   customers = [],
+  vendors = [],
   customKarats = {}
 }: AddGoldTransactionDialogProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
-    type: 'RECEIVE_GOLD',
+    type: 'RECEIVE',
     weight: '',
     purity: '',
     karat: '',
-    customerId: '',
+    customerId: 'none',
+    vendorId: 'none',
     date: new Date().toISOString().split('T')[0],
     notes: '',
   })
@@ -79,7 +82,8 @@ export function AddGoldTransactionDialog({
         type: formData.type as any,
         weight: parseFloat(formData.weight),
         purity: parseFloat(formData.purity),
-        customerId: formData.customerId || undefined,
+        customerId: (formData.customerId && formData.customerId !== 'none') ? formData.customerId : undefined,
+        vendorId: (formData.vendorId && formData.vendorId !== 'none') ? formData.vendorId : undefined,
         date: new Date(formData.date),
         notes: formData.notes || undefined,
       })
@@ -87,11 +91,12 @@ export function AddGoldTransactionDialog({
       toast.success('Transaction added successfully')
       setOpen(false)
       setFormData({
-        type: 'RECEIVE_GOLD',
+        type: 'RECEIVE',
         weight: '',
         purity: '',
         karat: '',
-        customerId: '',
+        customerId: 'none',
+        vendorId: 'none',
         date: new Date().toISOString().split('T')[0],
         notes: '',
       })
@@ -128,10 +133,8 @@ export function AddGoldTransactionDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="RECEIVE_GOLD">Receive Gold</SelectItem>
-                  <SelectItem value="USE_FOR_JEWELLERY">Use for Jewellery</SelectItem>
-                  <SelectItem value="JEWELLERY_DELIVERY">Jewellery Delivery</SelectItem>
-                  <SelectItem value="JEWELLERY_RETURN">Jewellery Return</SelectItem>
+                  <SelectItem value="RECEIVE">Receive (Gold In)</SelectItem>
+                  <SelectItem value="PAY">Pay (Gold Out)</SelectItem>
                   <SelectItem value="ADJUSTMENT">Adjustment</SelectItem>
                 </SelectContent>
               </Select>
@@ -187,25 +190,49 @@ export function AddGoldTransactionDialog({
             </div>
 
 
-            {/* Customer */}
-            <div className="grid gap-2">
-              <Label htmlFor="customer">Customer (Optional)</Label>
-              <Select
-                value={formData.customerId}
-                onValueChange={(value) => setFormData({ ...formData, customerId: value })}
-              >
-                <SelectTrigger id="customer">
-                  <SelectValue placeholder="Select customer" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">None</SelectItem>
-                  {customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Customer or Vendor */}
+            <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                <Label htmlFor="customer">Customer</Label>
+                <Select
+                    value={formData.customerId}
+                    onValueChange={(value) => setFormData({ ...formData, customerId: value, vendorId: 'none' })}
+                    disabled={formData.vendorId !== 'none'}
+                >
+                    <SelectTrigger id="customer">
+                    <SelectValue placeholder="Select customer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {customers.map((customer) => (
+                        <SelectItem key={customer.id} value={customer.id}>
+                        {customer.name}
+                        </SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
+                </div>
+
+                <div className="grid gap-2">
+                <Label htmlFor="vendor">Vendor</Label>
+                <Select
+                    value={formData.vendorId}
+                    onValueChange={(value) => setFormData({ ...formData, vendorId: value, customerId: 'none' })}
+                    disabled={formData.customerId !== 'none'}
+                >
+                    <SelectTrigger id="vendor">
+                    <SelectValue placeholder="Select vendor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {vendors.map((vendor) => (
+                        <SelectItem key={vendor.id} value={vendor.id}>
+                        {vendor.name}
+                        </SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
+                </div>
             </div>
 
             {/* Date */}

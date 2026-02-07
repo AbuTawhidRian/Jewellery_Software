@@ -21,7 +21,7 @@ const navigation = [
   { name: 'Cash Ledger', href: '/cash-ledger', icon: Wallet },
   { name: 'Customers', href: '/customers', icon: Users },
   { name: 'Vendors', href: '/vendors', icon: Store },
-  { name: 'Orders', href: '/orders', icon: FileText },
+
   { name: 'Companies', href: '/companies', icon: Building2 },
   { name: 'Reports', href: '/reports', icon: FileText },
   { name: 'Settings', href: '/settings', icon: Settings },

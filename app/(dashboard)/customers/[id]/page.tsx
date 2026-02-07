@@ -10,8 +10,9 @@ import { formatDistance } from 'date-fns'
 
 export const dynamic = 'force-dynamic'
 
-export default async function CustomerDetailsPage({ params }: { params: { id: string } }) {
-  const customer = await getCustomer(params.id)
+export default async function CustomerDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const customer = await getCustomer(id)
 
   if (!customer) {
     notFound()
@@ -43,16 +44,7 @@ export default async function CustomerDetailsPage({ params }: { params: { id: st
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{customer.orders?.length || 0}</div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Gold Transactions</CardTitle>
@@ -103,38 +95,6 @@ export default async function CustomerDetailsPage({ params }: { params: { id: st
           )}
         </CardContent>
       </Card>
-
-      {/* Recent Orders */}
-      {customer.orders && customer.orders.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Orders</CardTitle>
-            <CardDescription>Last 10 orders from this customer</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Order ID</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {customer.orders.map((order: any) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">{order.id.slice(0, 8)}</TableCell>
-                    <TableCell>{formatDistance(new Date(order.createdAt), new Date(), { addSuffix: true })}</TableCell>
-                    <TableCell>{order.status}</TableCell>
-                    <TableCell className="text-right">${order.totalAmount?.toFixed(2) || '0.00'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Recent Transactions */}
       {totalTransactions > 0 && (
@@ -202,13 +162,13 @@ export default async function CustomerDetailsPage({ params }: { params: { id: st
       )}
 
       {/* Empty State */}
-      {!customer.orders?.length && totalTransactions === 0 && (
+      {totalTransactions === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-10">
             <Package className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Activity Yet</h3>
             <p className="text-sm text-muted-foreground text-center">
-              This customer hasn't placed any orders or made any transactions yet.
+              This customer hasn't made any transactions yet.
             </p>
           </CardContent>
         </Card>

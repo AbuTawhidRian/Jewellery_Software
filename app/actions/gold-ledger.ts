@@ -1,20 +1,20 @@
 'use server'
-
+import {z} from 'zod'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
-import { z } from 'zod'
+import { TransactionType } from '@prisma/client'
 import fs from 'fs'
 
 // Validation schema for gold transaction
 const goldTransactionSchema = z.object({
-  type: z.enum(['RECEIVE_GOLD', 'USE_FOR_JEWELLERY', 'JEWELLERY_DELIVERY', 'JEWELLERY_RETURN', 'ADJUSTMENT']),
-  weight: z.number().positive('Weight must be positive'),
-  purity: z.number().min(0).max(100, 'Purity must be between 0 and 100'),
-  customerId: z.string().optional(),
-  orderId: z.string().optional(),
+  type: z.enum(['RECEIVE', 'PAY', 'ADJUSTMENT']),
+  weight: z.coerce.number().positive('Weight must be positive'),
+  purity: z.coerce.number().min(0).max(100, 'Purity must be between 0 and 100'),
+  customerId: z.string().optional().nullable(),
+  vendorId: z.string().optional().nullable(),
   date: z.date().optional(),
-  notes: z.string().optional(),
+  notes: z.string().optional().nullable(),
 })
 
 type GoldTransactionFormData = z.infer<typeof goldTransactionSchema>
@@ -47,14 +47,19 @@ export async function getGoldTransactions() {
       customer: {
         select: { id: true, name: true }
       },
-      order: {
-        select: { id: true, orderNo: true }
+      vendor: {
+        select: { id: true, name: true }
       }
     },
     orderBy: { date: 'desc' }
   })
 
-  return transactions
+  // Convert Decimal to number for client-side serialization
+  return transactions.map(t => ({
+    ...t,
+    weight: Number(t.weight),
+    purity: Number(t.purity),
+  }))
 }
 
 /**
@@ -96,17 +101,24 @@ export async function createGoldTransaction(data: GoldTransactionFormData) {
       notes: validated.notes,
       companyId,
       customerId: validated.customerId,
-      orderId: validated.orderId,
+      vendorId: validated.vendorId,
     },
     include: {
       customer: {
+        select: { id: true, name: true }
+      },
+      vendor: {
         select: { id: true, name: true }
       }
     }
   })
 
   revalidatePath('/gold-ledger')
-  return transaction
+  return {
+    ...transaction,
+    weight: Number(transaction.weight),
+    purity: Number(transaction.purity)
+  }
 }
 
 /**
@@ -145,19 +157,26 @@ export async function getCustomerGoldBalance(customerId: string) {
   })
 
   let balance = 0
-  transactions.forEach(t => {
-    const weight = Number(t.weight)
-    if (t.type === 'RECEIVE_GOLD' || t.type === 'JEWELLERY_RETURN') {
-      balance += weight
-    } else if (t.type === 'USE_FOR_JEWELLERY' || t.type === 'JEWELLERY_DELIVERY') {
-      balance -= weight
+  const serializedTransactions = transactions.map(t => {
+    const weightVal = Number(t.weight)
+    const purityVal = Number(t.purity)
+
+    if (t.type === 'RECEIVE') {
+      balance += weightVal
+    } else if (t.type === 'PAY') {
+      balance -= weightVal
     }
-    // ADJUSTMENT can be positive or negative based on weight sign
+
+    return {
+      ...t,
+      weight: weightVal,
+      purity: purityVal,
+    }
   })
 
   return {
     balance: balance.toFixed(3),
-    transactions
+    transactions: serializedTransactions
   }
 }
 
@@ -214,17 +233,17 @@ export async function getGoldStats() {
       const weight = Number(t.weight)
       const purity = Number(t.purity)
 
-      if (t.type === 'RECEIVE_GOLD' || t.type === 'JEWELLERY_RETURN') {
+      if (t.type === 'RECEIVE') {
         totalIn += weight
-      } else if (t.type === 'USE_FOR_JEWELLERY' || t.type === 'JEWELLERY_DELIVERY') {
+      } else if (t.type === 'PAY') {
         totalOut += weight
       }
 
       // Calculate net weight for balance
       let netWeight = 0
-      if (t.type === 'RECEIVE_GOLD' || t.type === 'JEWELLERY_RETURN') {
+      if (t.type === 'RECEIVE') {
         netWeight = weight
-      } else if (t.type === 'USE_FOR_JEWELLERY' || t.type === 'JEWELLERY_DELIVERY') {
+      } else if (t.type === 'PAY') {
         netWeight = -weight
       }
 

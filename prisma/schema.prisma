@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -50,23 +51,24 @@ model User {
 }
 
 model Company {
-  id              String           @id @default(uuid())
-  name            String
-  country         String
-  currency        String           @default("USD")
-  timezone        String           @default("UTC")
-  tenantId        String
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  currencies      Json?
-  customKarats    Json?
-  branches        Branch[]
-  cashLedger      CashLedger[]
-  tenant          Tenant           @relation(fields: [tenantId], references: [id])
-  customers       Customer[]
-  goldLedger      GoldLedger[]
-  jewelleryOrders JewelleryOrder[]
-  users           User[]
+  id           String       @id @default(uuid())
+  name         String
+  country      String
+  currency     String       @default("USD")
+  timezone     String       @default("UTC")
+  tenantId     String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  currencies   Json?
+  customKarats Json?
+  accounts     Account[]
+  branches     Branch[]
+  cashLedger   CashLedger[]
+  tenant       Tenant       @relation(fields: [tenantId], references: [id])
+  customers    Customer[]
+  vendors      Vendor[]
+  goldLedger   GoldLedger[]
+  users        User[]
 
   @@index([tenantId])
 }
@@ -84,80 +86,78 @@ model Branch {
 }
 
 model Customer {
-  id               String           @id @default(uuid())
+  id               String       @id @default(uuid())
   name             String
   phone            String?
   email            String?
   address          String?
   companyId        String
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
   cashTransactions CashLedger[]
-  company          Company          @relation(fields: [companyId], references: [id])
+  company          Company      @relation(fields: [companyId], references: [id])
   goldTransactions GoldLedger[]
-  orders           JewelleryOrder[]
 
   @@index([companyId])
-}
-
-model JewelleryOrder {
-  id                String       @id @default(uuid())
-  orderNo           String
-  status            OrderStatus  @default(PENDING)
-  description       String?
-  imageUrl          String?
-  estimatedWeight   Decimal?     @db.Decimal(10, 3)
-  customerId        String
-  companyId         String
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-  cashLedgerEntries CashLedger[]
-  goldLedgerEntries GoldLedger[]
-  company           Company      @relation(fields: [companyId], references: [id])
-  customer          Customer     @relation(fields: [customerId], references: [id])
-
-  @@index([companyId])
-  @@index([customerId])
 }
 
 model GoldLedger {
-  id         String              @id @default(uuid())
-  date       DateTime            @default(now())
-  type       GoldTransactionType
-  weight     Decimal             @db.Decimal(10, 3)
-  purity     Decimal             @db.Decimal(5, 2)
+  id         String          @id @default(uuid())
+  date       DateTime        @default(now())
+  weight     Decimal         @db.Decimal(10, 3)
+  purity     Decimal         @db.Decimal(5, 2)
   notes      String?
   companyId  String
-  orderId    String?
   customerId String?
-  createdAt  DateTime            @default(now())
-  company    Company             @relation(fields: [companyId], references: [id])
-  customer   Customer?           @relation(fields: [customerId], references: [id])
-  order      JewelleryOrder?     @relation(fields: [orderId], references: [id])
+  createdAt  DateTime        @default(now())
+  type       TransactionType
+  company    Company         @relation(fields: [companyId], references: [id])
+  customer   Customer?       @relation(fields: [customerId], references: [id])
+  vendor     Vendor?         @relation(fields: [vendorId], references: [id])
+  vendorId   String?
 
   @@index([companyId])
   @@index([customerId])
-  @@index([orderId])
+  @@index([vendorId])
 }
 
 model CashLedger {
-  id         String              @id @default(uuid())
-  date       DateTime            @default(now())
-  type       CashTransactionType
-  amount     Decimal             @db.Decimal(12, 2)
+  id         String          @id @default(uuid())
+  date       DateTime        @default(now())
+  amount     Decimal         @db.Decimal(12, 2)
   currency   String
   notes      String?
   companyId  String
-  orderId    String?
   customerId String?
-  createdAt  DateTime            @default(now())
-  company    Company             @relation(fields: [companyId], references: [id])
-  customer   Customer?           @relation(fields: [customerId], references: [id])
-  order      JewelleryOrder?     @relation(fields: [orderId], references: [id])
+  createdAt  DateTime        @default(now())
+  accountId  String?
+  type       TransactionType
+  account    Account?        @relation(fields: [accountId], references: [id])
+  company    Company         @relation(fields: [companyId], references: [id])
+  customer   Customer?       @relation(fields: [customerId], references: [id])
+  vendor     Vendor?         @relation(fields: [vendorId], references: [id])
+  vendorId   String?
 
   @@index([companyId])
   @@index([customerId])
-  @@index([orderId])
+  @@index([vendorId])
+}
+
+model Vendor {
+  id               String       @id @default(uuid())
+  name             String
+  phone            String?
+  email            String?
+  address          String?
+  taxId            String?
+  companyId        String
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  company          Company      @relation(fields: [companyId], references: [id])
+  goldTransactions GoldLedger[]
+  cashTransactions CashLedger[]
+
+  @@index([companyId])
 }
 
 model AuditLog {
@@ -171,6 +171,19 @@ model AuditLog {
   user      User     @relation(fields: [userId], references: [id])
 
   @@index([tenantId])
+}
+
+model Account {
+  id           String       @id @default(uuid())
+  name         String
+  type         AccountType  @default(EXPENSE)
+  companyId    String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  company      Company      @relation(fields: [companyId], references: [id])
+  transactions CashLedger[]
+
+  @@index([companyId])
 }
 
 enum UserRole {
@@ -189,26 +202,13 @@ enum SubscriptionStatus {
   CANCELED
 }
 
-enum GoldTransactionType {
-  RECEIVE_GOLD
-  USE_FOR_JEWELLERY
-  JEWELLERY_DELIVERY
-  JEWELLERY_RETURN
+enum TransactionType {
+  RECEIVE
+  PAY
   ADJUSTMENT
 }
 
-enum CashTransactionType {
-  RECEIVE_PAYMENT
-  PAY_CUSTOMER
+enum AccountType {
+  INCOME
   EXPENSE
-  OTHER
-}
-
-enum OrderStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  DELIVERED
-  RETURNED
-  CANCELLED
 }

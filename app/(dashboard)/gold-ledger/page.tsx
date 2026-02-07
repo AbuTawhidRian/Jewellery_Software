@@ -7,13 +7,16 @@ import { PlusCircle, Gem, TrendingUp, TrendingDown, Scale } from 'lucide-react'
 import { AddGoldTransactionDialog } from '@/components/gold-ledger/add-gold-transaction-dialog'
 import { GoldTransactionsTable } from '@/components/gold-ledger/gold-transactions-table'
 
+import { getVendors } from '@/app/actions/vendors'
+
 export const dynamic = 'force-dynamic'
 
 export default async function GoldLedgerPage() {
-  const [transactions, stats, customers, settings] = await Promise.all([
+  const [transactions, stats, customers, vendors, settings] = await Promise.all([
     getGoldTransactions(),
     getGoldStats(),
     getCustomers(),
+    getVendors(),
     getCompanySettings(),
   ])
 
@@ -28,7 +31,8 @@ export default async function GoldLedgerPage() {
           </p>
         </div>
         <AddGoldTransactionDialog 
-          customers={customers} 
+          customers={customers}
+          vendors={vendors} 
           customKarats={settings.customKarats || {}}
         >
           <Button>
