@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/db'
 import { auth } from '@/auth'
 import { startOfMonth, subMonths, format } from 'date-fns'
+import fs from 'fs'
 
 export async function getDashboardMetrics() {
   const session = await auth()
@@ -98,6 +99,81 @@ export async function getDashboardMetrics() {
     totalCustomers
   }
 }
+
+export async function getGoldBreakdown() {
+  const session = await auth()
+  
+  if (!session?.user?.email) {
+    throw new Error('Unauthorized')
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { companyId: true, tenantId: true }
+  })
+
+  if (!user?.companyId && !user?.tenantId) {
+    return {
+      k24: '0.000',
+      k22: '0.000',
+      k18: '0.000'
+    }
+  }
+
+  const companyId = user.companyId
+  const tenantId = user.tenantId
+
+  // Fetch company settings for custom karats
+  const company = companyId ? await prisma.company.findUnique({
+    where: { id: companyId },
+    select: { customKarats: true }
+  }) : null
+
+  const customKarats = (company?.customKarats as Record<string, number>) || {}
+
+  // Get all gold transactions with purity
+  const goldTransactions = await prisma.goldLedger.findMany({
+    where: companyId ? { companyId } : { company: { tenantId } },
+    select: { weight: true, type: true, purity: true }
+  })
+
+  let k24Balance = 0
+  let k22Balance = 0
+  let k18Balance = 0
+
+  goldTransactions.forEach(t => {
+    const weight = Number(t.weight)
+    const purity = Number(t.purity)
+    let netWeight = 0
+    
+    // Calculate net weight based on transaction type
+    if (t.type === 'RECEIVE_GOLD' || t.type === 'JEWELLERY_RETURN') {
+      netWeight = weight
+    } else if (t.type === 'USE_FOR_JEWELLERY' || t.type === 'JEWELLERY_DELIVERY') {
+      netWeight = -weight
+    }
+
+    // Map purity to karat category using custom mappings or fallbacks
+    const p24 = customKarats['24'] || 99.0
+    const p22 = customKarats['22'] || 91.0
+    const p18 = customKarats['18'] || 75.0
+
+    if (purity >= p24 - 0.5) {
+      k24Balance += netWeight
+    } else if (purity >= p22 - 1.0 && purity < p24 - 0.5) {
+      k22Balance += netWeight
+    } else if (purity >= p18 - 2.0 && purity < p22 - 1.0) {
+      k18Balance += netWeight
+    }
+  })
+
+  return {
+    k24: k24Balance.toFixed(3),
+    k22: k22Balance.toFixed(3),
+    k18: k18Balance.toFixed(3)
+  }
+}
+
 
 export async function getRecentActivity() {
     const session = await auth()

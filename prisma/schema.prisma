@@ -6,9 +6,172 @@ datasource db {
   provider = "postgresql"
 }
 
-// -----------------------------------------------------------------------------
-// ENUMS
-// -----------------------------------------------------------------------------
+model Tenant {
+  id           String        @id @default(uuid())
+  name         String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  auditLogs    AuditLog[]
+  companies    Company[]
+  subscription Subscription?
+  users        User[]
+}
+
+model Subscription {
+  id                   String             @id @default(uuid())
+  tenantId             String             @unique
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  status               SubscriptionStatus @default(TRIAL)
+  plan                 String             @default("FREE")
+  maxUsers             Int                @default(2)
+  maxCompanies         Int                @default(1)
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  tenant               Tenant             @relation(fields: [tenantId], references: [id])
+}
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String
+  name         String?
+  role         UserRole   @default(VIEWER)
+  tenantId     String
+  companyId    String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  auditLogs    AuditLog[]
+  company      Company?   @relation(fields: [companyId], references: [id])
+  tenant       Tenant     @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+}
+
+model Company {
+  id              String           @id @default(uuid())
+  name            String
+  country         String
+  currency        String           @default("USD")
+  timezone        String           @default("UTC")
+  tenantId        String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  currencies      Json?
+  customKarats    Json?
+  branches        Branch[]
+  cashLedger      CashLedger[]
+  tenant          Tenant           @relation(fields: [tenantId], references: [id])
+  customers       Customer[]
+  goldLedger      GoldLedger[]
+  jewelleryOrders JewelleryOrder[]
+  users           User[]
+
+  @@index([tenantId])
+}
+
+model Branch {
+  id        String   @id @default(uuid())
+  name      String
+  address   String?
+  companyId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company   Company  @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+}
+
+model Customer {
+  id               String           @id @default(uuid())
+  name             String
+  phone            String?
+  email            String?
+  address          String?
+  companyId        String
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  cashTransactions CashLedger[]
+  company          Company          @relation(fields: [companyId], references: [id])
+  goldTransactions GoldLedger[]
+  orders           JewelleryOrder[]
+
+  @@index([companyId])
+}
+
+model JewelleryOrder {
+  id                String       @id @default(uuid())
+  orderNo           String
+  status            OrderStatus  @default(PENDING)
+  description       String?
+  imageUrl          String?
+  estimatedWeight   Decimal?     @db.Decimal(10, 3)
+  customerId        String
+  companyId         String
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  cashLedgerEntries CashLedger[]
+  goldLedgerEntries GoldLedger[]
+  company           Company      @relation(fields: [companyId], references: [id])
+  customer          Customer     @relation(fields: [customerId], references: [id])
+
+  @@index([companyId])
+  @@index([customerId])
+}
+
+model GoldLedger {
+  id         String              @id @default(uuid())
+  date       DateTime            @default(now())
+  type       GoldTransactionType
+  weight     Decimal             @db.Decimal(10, 3)
+  purity     Decimal             @db.Decimal(5, 2)
+  notes      String?
+  companyId  String
+  orderId    String?
+  customerId String?
+  createdAt  DateTime            @default(now())
+  company    Company             @relation(fields: [companyId], references: [id])
+  customer   Customer?           @relation(fields: [customerId], references: [id])
+  order      JewelleryOrder?     @relation(fields: [orderId], references: [id])
+
+  @@index([companyId])
+  @@index([customerId])
+  @@index([orderId])
+}
+
+model CashLedger {
+  id         String              @id @default(uuid())
+  date       DateTime            @default(now())
+  type       CashTransactionType
+  amount     Decimal             @db.Decimal(12, 2)
+  currency   String
+  notes      String?
+  companyId  String
+  orderId    String?
+  customerId String?
+  createdAt  DateTime            @default(now())
+  company    Company             @relation(fields: [companyId], references: [id])
+  customer   Customer?           @relation(fields: [customerId], references: [id])
+  order      JewelleryOrder?     @relation(fields: [orderId], references: [id])
+
+  @@index([companyId])
+  @@index([customerId])
+  @@index([orderId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  details   String?
+  userId    String
+  tenantId  String
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+}
 
 enum UserRole {
   SUPER_ADMIN
@@ -27,11 +190,11 @@ enum SubscriptionStatus {
 }
 
 enum GoldTransactionType {
-  RECEIVE_GOLD      // Customer gives gold
-  USE_FOR_JEWELLERY // Gold used in manufacturing
-  JEWELLERY_DELIVERY // Gold delivered as product
-  JEWELLERY_RETURN  // Product returned
-  ADJUSTMENT        // Wastage / Correction
+  RECEIVE_GOLD
+  USE_FOR_JEWELLERY
+  JEWELLERY_DELIVERY
+  JEWELLERY_RETURN
+  ADJUSTMENT
 }
 
 enum CashTransactionType {
@@ -48,233 +211,4 @@ enum OrderStatus {
   DELIVERED
   RETURNED
   CANCELLED
-}
-
-// -----------------------------------------------------------------------------
-// TENANCY & AUTH
-// -----------------------------------------------------------------------------
-
-model Tenant {
-  id           String        @id @default(uuid())
-  name         String
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  
-  subscription Subscription?
-  companies    Company[]
-  users        User[]
-  auditLogs    AuditLog[]
-}
-
-model Subscription {
-  id                   String             @id @default(uuid())
-  tenantId             String             @unique
-  tenant               Tenant             @relation(fields: [tenantId], references: [id])
-  
-  stripeCustomerId     String?
-  stripeSubscriptionId String?
-  status               SubscriptionStatus @default(TRIAL)
-  plan                 String             @default("FREE")
-  
-  maxUsers             Int                @default(2)
-  maxCompanies         Int                @default(1)
-  
-  currentPeriodEnd     DateTime?
-
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
-}
-
-model User {
-  id           String    @id @default(uuid())
-  email        String    @unique
-  passwordHash String
-  name         String?
-  role         UserRole  @default(VIEWER)
-  
-  tenantId     String
-  tenant       Tenant    @relation(fields: [tenantId], references: [id])
-
-  // Optional: Restrict user to specific company (if null, access depends on role/logic)
-  companyId    String?
-  company      Company?  @relation(fields: [companyId], references: [id])
-
-  auditLogs    AuditLog[]
-
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  @@index([tenantId])
-}
-
-// -----------------------------------------------------------------------------
-// ORGANIZATION STRUCTURE
-// -----------------------------------------------------------------------------
-
-model Company {
-  id        String   @id @default(uuid())
-  name      String
-  country   String
-  currency  String   @default("USD")
-  timezone  String   @default("UTC")
-  
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-
-  branches        Branch[]
-  users           User[]
-  customers       Customer[]
-  goldLedger      GoldLedger[]
-  cashLedger      CashLedger[]
-  jewelleryOrders JewelleryOrder[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([tenantId])
-}
-
-model Branch {
-  id        String   @id @default(uuid())
-  name      String
-  address   String?
-  
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([companyId])
-}
-
-// -----------------------------------------------------------------------------
-// CORE BUSINESS ENTITIES
-// -----------------------------------------------------------------------------
-
-model Customer {
-  id        String   @id @default(uuid())
-  name      String
-  phone     String?
-  email     String?
-  address   String?
-  
-  companyId String
-  company   Company @relation(fields: [companyId], references: [id])
-  
-  orders    JewelleryOrder[]
-  goldTransactions GoldLedger[]
-  cashTransactions CashLedger[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([companyId])
-}
-
-model JewelleryOrder {
-  id          String      @id @default(uuid())
-  orderNo     String      // Friendly ID like ORD-001
-  status      OrderStatus @default(PENDING)
-  
-  description String?
-  imageUrl    String?     // For design image
-  
-  // Estimates
-  estimatedWeight Decimal? @db.Decimal(10, 3)
-  
-  customerId  String
-  customer    Customer    @relation(fields: [customerId], references: [id])
-  
-  companyId   String
-  company     Company     @relation(fields: [companyId], references: [id])
-
-  goldLedgerEntries GoldLedger[]
-  cashLedgerEntries CashLedger[]
-
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  @@index([companyId])
-  @@index([customerId])
-}
-
-// -----------------------------------------------------------------------------
-// LEDGERS (APPEND ONLY)
-// -----------------------------------------------------------------------------
-
-model GoldLedger {
-  id          String              @id @default(uuid())
-  date        DateTime            @default(now())
-  
-  type        GoldTransactionType
-  weight      Decimal             @db.Decimal(10, 3) // Grams
-  purity      Decimal             @db.Decimal(5, 2)  // e.g. 99.99, 91.60
-  
-  notes       String?
-  
-  companyId   String
-  company     Company             @relation(fields: [companyId], references: [id])
-
-  // Context
-  orderId     String?
-  order       JewelleryOrder?     @relation(fields: [orderId], references: [id])
-
-  customerId  String?
-  customer    Customer?           @relation(fields: [customerId], references: [id])
-
-  createdAt   DateTime            @default(now())
-  // No updatedAt - Append Only
-
-  @@index([companyId])
-  @@index([customerId])
-  @@index([orderId])
-}
-
-model CashLedger {
-  id          String              @id @default(uuid())
-  date        DateTime            @default(now())
-  
-  type        CashTransactionType
-  amount      Decimal             @db.Decimal(12, 2)
-  currency    String              // ISO code e.g. USD
-  
-  notes       String?
-  
-  companyId   String
-  company     Company             @relation(fields: [companyId], references: [id])
-
-  // Context
-  orderId     String?
-  order       JewelleryOrder?     @relation(fields: [orderId], references: [id])
-
-  customerId  String?
-  customer    Customer?           @relation(fields: [customerId], references: [id])
-
-  createdAt   DateTime            @default(now())
-  // No updatedAt - Append Only
-
-  @@index([companyId])
-  @@index([customerId])
-  @@index([orderId])
-}
-
-// -----------------------------------------------------------------------------
-// SECURITY
-// -----------------------------------------------------------------------------
-
-model AuditLog {
-  id        String   @id @default(uuid())
-  action    String
-  details   String?
-  
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  
-  createdAt DateTime @default(now())
-
-  @@index([tenantId])
 }
