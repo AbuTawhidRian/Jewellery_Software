@@ -69,8 +69,30 @@ model Company {
   vendors      Vendor[]
   goldLedger   GoldLedger[]
   users        User[]
+  metalRates   MetalRate[]
 
   @@index([tenantId])
+}
+
+model MetalRate {
+  id        String   @id @default(uuid())
+  date      DateTime @default(now())
+  
+  // Base rates (per gram)
+  gold24k   Decimal  @db.Decimal(10, 2) @default(0)
+  gold22k   Decimal  @db.Decimal(10, 2) @default(0)
+  gold18k   Decimal  @db.Decimal(10, 2) @default(0)
+  silver    Decimal  @db.Decimal(10, 2) @default(0)
+  
+  currency  String   @default("USD")
+  
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, date])
 }
 
 model Branch {
@@ -102,19 +124,21 @@ model Customer {
 }
 
 model GoldLedger {
-  id         String          @id @default(uuid())
-  date       DateTime        @default(now())
-  weight     Decimal         @db.Decimal(10, 3)
-  purity     Decimal         @db.Decimal(5, 2)
-  notes      String?
-  companyId  String
-  customerId String?
-  createdAt  DateTime        @default(now())
-  type       TransactionType
-  company    Company         @relation(fields: [companyId], references: [id])
-  customer   Customer?       @relation(fields: [customerId], references: [id])
-  vendor     Vendor?         @relation(fields: [vendorId], references: [id])
-  vendorId   String?
+  id                    String          @id @default(uuid())
+  date                  DateTime        @default(now())
+  weight                Decimal         @db.Decimal(10, 3)
+  purity                Decimal         @db.Decimal(5, 2)
+  notes                 String?
+  companyId             String
+  customerId            String?
+  createdAt             DateTime        @default(now())
+  type                  TransactionType
+  makingRate            Decimal?        @db.Decimal(10, 2)
+  company               Company         @relation(fields: [companyId], references: [id])
+  customer              Customer?       @relation(fields: [customerId], references: [id])
+  vendor                Vendor?         @relation(fields: [vendorId], references: [id])
+  vendorId              String?
+  linkedCashTransaction CashLedger?     @relation("GoldMakingCharge")
 
   @@index([companyId])
   @@index([customerId])
@@ -122,21 +146,23 @@ model GoldLedger {
 }
 
 model CashLedger {
-  id         String          @id @default(uuid())
-  date       DateTime        @default(now())
-  amount     Decimal         @db.Decimal(12, 2)
-  currency   String
-  notes      String?
-  companyId  String
-  customerId String?
-  createdAt  DateTime        @default(now())
-  accountId  String?
-  type       TransactionType
-  account    Account?        @relation(fields: [accountId], references: [id])
-  company    Company         @relation(fields: [companyId], references: [id])
-  customer   Customer?       @relation(fields: [customerId], references: [id])
-  vendor     Vendor?         @relation(fields: [vendorId], references: [id])
-  vendorId   String?
+  id                String          @id @default(uuid())
+  date              DateTime        @default(now())
+  amount            Decimal         @db.Decimal(12, 2)
+  currency          String
+  notes             String?
+  companyId         String
+  customerId        String?
+  createdAt         DateTime        @default(now())
+  accountId         String?
+  type              TransactionType
+  goldTransactionId String?         @unique
+  account           Account?        @relation(fields: [accountId], references: [id])
+  company           Company         @relation(fields: [companyId], references: [id])
+  customer          Customer?       @relation(fields: [customerId], references: [id])
+  vendor            Vendor?         @relation(fields: [vendorId], references: [id])
+  vendorId          String?
+  goldTransaction   GoldLedger?     @relation("GoldMakingCharge", fields: [goldTransactionId], references: [id])
 
   @@index([companyId])
   @@index([customerId])
@@ -188,6 +214,7 @@ model Account {
 
 enum UserRole {
   SUPER_ADMIN
+  OWNER
   COMPANY_ADMIN
   ACCOUNTANT
   PRODUCTION_STAFF

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Pencil, ArrowLeft, Phone, Mail, MapPin, Store } from 'lucide-react'
 import Link from 'next/link'
 import { AddVendorDialog } from '@/components/vendors/add-vendor-dialog'
+import { DownloadStatementDialog } from '@/components/statements/download-statement-dialog'
 import { formatDistance } from 'date-fns'
 import {
   Table,
@@ -46,12 +47,19 @@ export default async function VendorDetailsPage({ params }: PageProps) {
             <span>Vendor Details</span>
           </div>
         </div>
-        <AddVendorDialog vendorToEdit={vendor}>
-          <Button variant="outline">
-            <Pencil className="mr-2 h-4 w-4" />
-            Edit Vendor
-          </Button>
-        </AddVendorDialog>
+        <div className="flex items-center gap-2">
+          <DownloadStatementDialog 
+            entityId={vendor.id} 
+            entityName={vendor.name}
+            entityType="vendor"
+          />
+          <AddVendorDialog vendorToEdit={vendor}>
+            <Button variant="outline">
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit Vendor
+            </Button>
+          </AddVendorDialog>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">

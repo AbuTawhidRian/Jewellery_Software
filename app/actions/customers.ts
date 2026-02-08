@@ -80,7 +80,24 @@ export async function getCustomer(id: string) {
     }
   })
 
-  return customer
+  if (!customer) {
+    return null
+  }
+
+  // Serialize Decimal fields to numbers for client components
+  return {
+    ...customer,
+    goldTransactions: customer.goldTransactions.map(t => ({
+      ...t,
+      weight: Number(t.weight),
+      purity: Number(t.purity),
+      makingRate: t.makingRate ? Number(t.makingRate) : null,
+    })),
+    cashTransactions: customer.cashTransactions.map(t => ({
+      ...t,
+      amount: Number(t.amount),
+    }))
+  }
 }
 
 export async function createCustomer(data: CustomerFormData) {

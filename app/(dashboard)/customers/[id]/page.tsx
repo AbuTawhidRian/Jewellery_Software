@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ArrowLeft, Mail, Phone, MapPin, Pencil, Package, Coins, DollarSign } from 'lucide-react'
 import Link from 'next/link'
 import { formatDistance } from 'date-fns'
+import { DownloadStatementDialog } from '@/components/statements/download-statement-dialog'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,12 +36,19 @@ export default async function CustomerDetailsPage({ params }: { params: Promise<
             <p className="text-muted-foreground">Customer Details</p>
           </div>
         </div>
-        <EditCustomerDialog customer={customer}>
-          <Button>
-            <Pencil className="mr-2 h-4 w-4" />
-            Edit Customer
-          </Button>
-        </EditCustomerDialog>
+        <div className="flex items-center gap-2">
+          <DownloadStatementDialog 
+            entityId={customer.id} 
+            entityName={customer.name}
+            entityType="customer"
+          />
+          <EditCustomerDialog customer={customer}>
+            <Button>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit Customer
+            </Button>
+          </EditCustomerDialog>
+        </div>
       </div>
 
       {/* Stats Cards */}

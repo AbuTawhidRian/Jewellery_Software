@@ -1,4 +1,5 @@
 import { getDashboardMetrics, getGoldBreakdown, getChartData } from '@/app/actions/dashboard-metrics'
+import { formatCurrencyValue } from '@/lib/currencies'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
@@ -78,26 +79,17 @@ export default async function DashboardPage() {
             <DollarSign className="h-5 w-5 text-cyan-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-cyan-900">${metrics.cashBalance}</div>
-            <p className="text-xs text-cyan-700 mt-1">
-              USD Balance
-            </p>
-            {/* Cash Breakdown */}
-            <div className="mt-4 space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-cyan-800">
-                  <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
-                  BDT
-                </span>
-                <span className="font-medium text-cyan-900">+50,000.00</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-cyan-800">
-                  <span className="w-2 h-2 rounded-full bg-cyan-500"></span>
-                  AED
-                </span>
-                <span className="font-medium text-cyan-900">3,500.00</span>
-              </div>
+            <div className="space-y-4">
+              {metrics.cashBalance.map((balance: any) => (
+                <div key={balance.currency} className="flex flex-col">
+                  <div className="text-2xl font-bold text-cyan-900">
+                    {formatCurrencyValue(Number(balance.amount), balance.currency)}
+                  </div>
+                  <p className="text-xs text-cyan-700">
+                    {balance.currency} Balance
+                  </p>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -124,8 +116,10 @@ export default async function DashboardPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$62.50</div>
-            <p className="text-xs text-muted-foreground">Gold (per gram)</p>
+            <div className="text-2xl font-bold">
+              {metrics.todayRate ? `$${metrics.todayRate}` : 'Not Set'}
+            </div>
+            <p className="text-xs text-muted-foreground">Gold 24K (per gram)</p>
           </CardContent>
         </Card>
 
@@ -149,7 +143,7 @@ export default async function DashboardPage() {
           <CardHeader>
             <CardTitle>Overview</CardTitle>
             <CardDescription>
-              Weekly performance
+              Weekly transaction activity
             </CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
@@ -168,19 +162,19 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent className="grid gap-4">
             <Button asChild variant="secondary" className="w-full justify-start">
-              <Link href="/transactions/gold">
+              <Link href="/gold-ledger">
                 <Coins className="mr-2 h-4 w-4" />
                 Record Gold Transaction
               </Link>
             </Button>
             <Button asChild variant="secondary" className="w-full justify-start">
-              <Link href="/transactions/cash">
+              <Link href="/cash-ledger">
                 <DollarSign className="mr-2 h-4 w-4" />
                 Record Cash Transaction
               </Link>
             </Button>
             <Button asChild variant="secondary" className="w-full justify-start">
-              <Link href="/metal-rates">
+              <Link href="/settings?tab=rates">
                 <TrendingUp className="mr-2 h-4 w-4" />
                 Update Metal Rates
               </Link>

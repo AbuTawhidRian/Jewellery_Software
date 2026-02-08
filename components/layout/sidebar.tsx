@@ -15,20 +15,40 @@ import {
   Settings,
 } from 'lucide-react'
 
-const navigation = [
+interface NavigationItem {
+  name: string
+  href: string
+  icon: any
+  roles?: ('OWNER' | 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'STAFF')[]
+}
+
+const navigation: NavigationItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Gold Ledger', href: '/gold-ledger', icon: Gem },
   { name: 'Cash Ledger', href: '/cash-ledger', icon: Wallet },
   { name: 'Customers', href: '/customers', icon: Users },
   { name: 'Vendors', href: '/vendors', icon: Store },
 
-  { name: 'Companies', href: '/companies', icon: Building2 },
+  { name: 'Companies / Branches', href: '/companies', icon: Building2, roles: ['OWNER', 'SUPER_ADMIN'] },
+  { name: 'Team', href: '/team', icon: Users, roles: ['OWNER', 'SUPER_ADMIN', 'COMPANY_ADMIN'] },
   { name: 'Reports', href: '/reports', icon: FileText },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Settings', href: '/settings', icon: Settings, roles: ['OWNER', 'SUPER_ADMIN', 'COMPANY_ADMIN'] },
 ]
 
-export function Sidebar() {
+interface SidebarProps {
+  userRole?: 'OWNER' | 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'STAFF'
+}
+
+export function Sidebar({ userRole }: SidebarProps) {
   const pathname = usePathname()
+
+  // Filter navigation items based on user role
+  const filteredNavigation = navigation.filter(item => {
+    // If no roles specified, show to everyone
+    if (!item.roles) return true
+    // If roles specified, check if user's role is in the allowed roles
+    return userRole && item.roles.includes(userRole)
+  })
 
   return (
     <div className="hidden border-r bg-white lg:block lg:w-64">
@@ -48,7 +68,7 @@ export function Sidebar() {
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 px-4 py-2">
-          {navigation.map((item) => {
+          {filteredNavigation.map((item) => {
             const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
             return (
               <Link

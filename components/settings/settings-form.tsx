@@ -31,6 +31,7 @@ import { CURRENCIES } from '@/lib/currencies'
 import { CurrencyMultiSelect } from './currency-multi-select'
 import { KaratEditor } from './karat-editor'
 import { AccountEditor } from './account-editor'
+import { MetalRatesEditor } from './metal-rates-editor'
 
 const settingsSchema = z.object({
   name: z.string().min(1, 'Company name is required'),
@@ -88,6 +89,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="currency">Currency</TabsTrigger>
+            <TabsTrigger value="rates">Metal Rates</TabsTrigger>
             <TabsTrigger value="gold">Gold Standards</TabsTrigger>
             <TabsTrigger value="accounts">Accounts</TabsTrigger>
           </TabsList>
@@ -215,6 +217,10 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                 />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="rates">
+            <MetalRatesEditor />
           </TabsContent>
 
           <TabsContent value="gold">

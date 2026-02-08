@@ -30,6 +30,7 @@ interface GoldTransaction {
   purity: any
   notes: string | null
   customer: { id: string; name: string } | null
+  vendor: { id: string; name: string } | null
 }
 
 interface GoldTransactionsTableProps {
@@ -154,7 +155,15 @@ export function GoldTransactionsTable({ transactions }: GoldTransactionsTablePro
                   </TableCell>
                   <TableCell>
                     {transaction.customer ? (
-                      <span className="text-sm">{transaction.customer.name}</span>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-sm">{transaction.customer.name}</span>
+                        <span className="text-xs text-muted-foreground">Customer</span>
+                      </div>
+                    ) : transaction.vendor ? (
+                      <div className="flex flex-col">
+                        <span className="font-medium text-sm text-purple-600">{transaction.vendor.name}</span>
+                        <span className="text-xs text-muted-foreground uppercase">Vendor</span>
+                      </div>
                     ) : (
                       <span className="text-sm text-muted-foreground">—</span>
                     )}

@@ -27,9 +27,10 @@ export async function getDashboardMetrics() {
 
   if (!tenantId) {
      return {
-        goldBalance: 0,
-        cashBalance: 0,
-        totalCustomers: 0
+        goldBalance: '0.000',
+        cashBalance: [{ currency: 'USD', amount: '0.00' }],
+        totalCustomers: 0,
+        todayRate: null
      }
   }
 
@@ -69,33 +70,61 @@ export async function getDashboardMetrics() {
   })
 
 
-  // 2. Cash Balance
+  // 2. Cash Balance (Multi-currency)
   const cashTransactions = await prisma.cashLedger.findMany({
     where: companyId ? { companyId } : { company: { tenantId } },
-     select: { amount: true, type: true }
+     select: { amount: true, type: true, currency: true }
   })
 
-  let cashBalance = 0
+  const cashBalances: Record<string, number> = {}
+
   cashTransactions.forEach(t => {
       const amount = Number(t.amount)
+      const currency = t.currency || 'USD'
+      
+      if (!cashBalances[currency]) {
+          cashBalances[currency] = 0
+      }
+
       if (t.type === 'RECEIVE') {
-          cashBalance += amount
+          cashBalances[currency] += amount
       } else {
-          cashBalance -= amount
+          cashBalances[currency] -= amount
       }
   })
 
-
+  // Format balances
+  const formattedCashBalances = Object.entries(cashBalances).map(([currency, amount]) => ({
+      currency,
+      amount: amount.toFixed(2)
+  }))
 
   // 4. Total Customers
   const totalCustomers = await prisma.customer.count({
       where: companyId ? { companyId } : { company: { tenantId } }
   })
 
+  // 5. Today's Gold Rate
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+
+  const rate = companyId ? await prisma.metalRate.findFirst({
+    where: {
+      companyId,
+      date: {
+        gte: today,
+        lt: tomorrow
+      }
+    }
+  }) : null
+
   return {
     goldBalance: goldBalance.toFixed(3),
-    cashBalance: cashBalance.toFixed(2),
-    totalCustomers
+    cashBalance: formattedCashBalances.length > 0 ? formattedCashBalances : [{ currency: 'USD', amount: '0.00' }],
+    totalCustomers,
+    todayRate: rate ? Number(rate.gold24k).toFixed(2) : null
   }
 }
 
@@ -177,16 +206,82 @@ export async function getGoldBreakdown() {
 
 
 export async function getChartData() {
-    // Mock data for now as we don't have historical aggregates easily available without raw SQL or heavy processing
-    // In a real app, we'd group by date.
-    
-    return [
-        { name: 'Mon', gold: 40, cash: 2400 },
-        { name: 'Tue', gold: 30, cash: 1398 },
-        { name: 'Wed', gold: 20, cash: 9800 },
-        { name: 'Thu', gold: 27, cash: 3908 },
-        { name: 'Fri', gold: 18, cash: 4800 },
-        { name: 'Sat', gold: 23, cash: 3800 },
-        { name: 'Sun', gold: 34, cash: 4300 },
-    ]
+  const session = await auth()
+  if (!session?.user?.email) return []
+
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { companyId: true, tenantId: true }
+  })
+
+  // Get last 7 days
+  const endDate = new Date()
+  const startDate = new Date()
+  startDate.setDate(startDate.getDate() - 6)
+  startDate.setHours(0, 0, 0, 0)
+
+  // Fetch transactions
+  const whereClause = {
+    ...(user?.companyId ? { companyId: user.companyId } : { company: { tenantId: user?.tenantId } }),
+    date: {
+      gte: startDate,
+      lte: endDate
+    }
+  }
+
+  const goldTx = await prisma.goldLedger.findMany({
+    where: whereClause,
+    select: { date: true, type: true, weight: true }
+  })
+
+  const cashTx = await prisma.cashLedger.findMany({
+    where: whereClause,
+    select: { date: true, type: true, amount: true, currency: true }
+  })
+
+  // Initialize days map
+  const daysMap = new Map<string, { name: string, gold: number, cash: number }>()
+  
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    const dayName = format(d, 'EEE') // Mon, Tue, etc.
+    const dateKey = format(d, 'yyyy-MM-dd')
+    daysMap.set(dateKey, { name: dayName, gold: 0, cash: 0 })
+  }
+
+  // Aggregate Gold (Net flow: Receive - Pay?)
+  // Actually charts usually show "Activity" or specific metric. 
+  // Let's show "Total Volume" (Receive + Pay) to show activity, OR "Net Change".
+  // "Overview" usually implies activity. Let's do Total Volume for now to show usage.
+  // Or maybe Positive vs Negative? Stacked bar?
+  // The current chart is a simple bar. Let's show Net Change daily.
+  
+  goldTx.forEach(tx => {
+    const dateKey = format(tx.date, 'yyyy-MM-dd')
+    const entry = daysMap.get(dateKey)
+    if (entry) {
+      const weight = Number(tx.weight)
+      // For net change:
+      // entry.gold += tx.type === 'RECEIVE' ? weight : -weight
+      // For volume:
+      entry.gold += weight
+    }
+  })
+
+  cashTx.forEach(tx => {
+    const dateKey = format(tx.date, 'yyyy-MM-dd')
+    const entry = daysMap.get(dateKey)
+    if (entry) {
+      const amount = Number(tx.amount)
+      // Convert to base currency if needed? 
+      // For now, let's just sum all amounts implicitly assuming one currency or just showing raw activity number.
+      // Ideally we should convert, but we lack exchange rates for all pairs.
+      // Let's just sum USD for now if available, or just raw sum.
+      // To be safe, let's just count 'USD' or the company's base currency. 
+      // But we don't have base currency easily here. 
+      // Let's just sum all.
+      entry.cash += amount
+    }
+  })
+
+  return Array.from(daysMap.values())
 }

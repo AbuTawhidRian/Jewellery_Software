@@ -50,6 +50,7 @@ export function AddGoldTransactionDialog({
     vendorId: 'none',
     date: new Date().toISOString().split('T')[0],
     notes: '',
+    makingRate: '',
   })
 
   // Get karats from settings or fallback
@@ -78,7 +79,9 @@ export function AddGoldTransactionDialog({
     setLoading(true)
 
     try {
-      await createGoldTransaction({
+      console.log('Form data:', formData)
+      
+      const payload = {
         type: formData.type as any,
         weight: parseFloat(formData.weight),
         purity: parseFloat(formData.purity),
@@ -86,7 +89,14 @@ export function AddGoldTransactionDialog({
         vendorId: (formData.vendorId && formData.vendorId !== 'none') ? formData.vendorId : undefined,
         date: new Date(formData.date),
         notes: formData.notes || undefined,
-      })
+        makingRate: formData.makingRate ? parseFloat(formData.makingRate) : undefined,
+      }
+      
+      console.log('Payload to server:', payload)
+      
+      const result = await createGoldTransaction(payload)
+      
+      console.log('Server response:', result)
 
       toast.success('Transaction added successfully')
       setOpen(false)
@@ -99,9 +109,11 @@ export function AddGoldTransactionDialog({
         vendorId: 'none',
         date: new Date().toISOString().split('T')[0],
         notes: '',
+        makingRate: '',
       })
       router.refresh()
     } catch (error: any) {
+      console.error('Error submitting transaction:', error)
       toast.error(error.message || 'Failed to add transaction')
     } finally {
       setLoading(false)
@@ -234,6 +246,28 @@ export function AddGoldTransactionDialog({
                 </Select>
                 </div>
             </div>
+
+            {/* Making Rate - Only show when customer is selected */}
+            {formData.customerId !== 'none' && (
+              <div className="grid gap-2">
+                <Label htmlFor="makingRate">Making Rate (per gram) - Optional</Label>
+                <Input
+                  id="makingRate"
+                  type="number"
+                  step="0.01"
+                  placeholder="9.00"
+                  value={formData.makingRate}
+                  onChange={(e) => setFormData({ ...formData, makingRate: e.target.value })}
+                />
+                {formData.makingRate && formData.weight && parseFloat(formData.makingRate) > 0 && parseFloat(formData.weight) > 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    Total Making Charge: <span className="font-semibold text-green-600">
+                      {(parseFloat(formData.weight) * parseFloat(formData.makingRate)).toFixed(2)}
+                    </span> (to be received from customer)
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Date */}
             <div className="grid gap-2">

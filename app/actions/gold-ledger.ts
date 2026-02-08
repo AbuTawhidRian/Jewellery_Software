@@ -15,6 +15,7 @@ const goldTransactionSchema = z.object({
   vendorId: z.string().optional().nullable(),
   date: z.date().optional(),
   notes: z.string().optional().nullable(),
+  makingRate: z.coerce.number().min(0).optional().nullable(),
 })
 
 type GoldTransactionFormData = z.infer<typeof goldTransactionSchema>
@@ -89,35 +90,81 @@ export async function createGoldTransaction(data: GoldTransactionFormData) {
   }
 
   // Validate the data
-  const validated = goldTransactionSchema.parse(data)
+  try {
+    const validated = goldTransactionSchema.parse(data)
 
-  // Create the transaction
-  const transaction = await prisma.goldLedger.create({
-    data: {
-      type: validated.type,
-      weight: validated.weight,
-      purity: validated.purity,
-      date: validated.date || new Date(),
-      notes: validated.notes,
-      companyId,
-      customerId: validated.customerId,
-      vendorId: validated.vendorId,
-    },
-    include: {
-      customer: {
-        select: { id: true, name: true }
-      },
-      vendor: {
-        select: { id: true, name: true }
+    // Create the transaction using a transaction block to ensure atomicity
+    const result = await prisma.$transaction(async (tx) => {
+      // Create the gold transaction
+      const goldTransaction = await tx.goldLedger.create({
+        data: {
+          type: validated.type,
+          weight: validated.weight,
+          purity: validated.purity,
+          date: validated.date || new Date(),
+          notes: validated.notes,
+          companyId,
+          customerId: validated.customerId,
+          vendorId: validated.vendorId,
+          makingRate: validated.makingRate,
+        },
+        include: {
+          customer: {
+            select: { id: true, name: true }
+          },
+          vendor: {
+            select: { id: true, name: true }
+          }
+        }
+      })
+
+      // If making rate is provided and customer exists, create cash transaction
+      if (validated.makingRate && validated.makingRate > 0 && validated.customerId) {
+        const makingCharge = validated.weight * validated.makingRate
+        
+        // Get company currency
+        const company = await tx.company.findUnique({
+          where: { id: companyId },
+          select: { currency: true }
+        })
+
+        await tx.cashLedger.create({
+          data: {
+            type: 'RECEIVE', // Company receives cash from customer for making charges
+            amount: makingCharge,
+            currency: company?.currency || 'USD',
+            date: validated.date || new Date(),
+            notes: `Making charges for gold transaction (${validated.weight}g @ ${validated.makingRate}/g)`,
+            companyId,
+            customerId: validated.customerId,
+            goldTransactionId: goldTransaction.id,
+          }
+        })
       }
-    }
-  })
 
-  revalidatePath('/gold-ledger')
-  return {
-    ...transaction,
-    weight: Number(transaction.weight),
-    purity: Number(transaction.purity)
+      return goldTransaction
+    })
+
+    revalidatePath('/gold-ledger')
+    revalidatePath('/cash-ledger')
+    return {
+      ...result,
+      weight: Number(result.weight),
+      purity: Number(result.purity),
+      makingRate: result.makingRate ? Number(result.makingRate) : null,
+    }
+  } catch (error: any) {
+    // Log detailed error information
+    const errorDetails = {
+      message: error.message,
+      stack: error.stack,
+      data: JSON.stringify(data),
+      timestamp: new Date().toISOString()
+    }
+    fs.appendFileSync('error_debug.log', `[${errorDetails.timestamp}] createGoldTransaction Error:\n${JSON.stringify(errorDetails, null, 2)}\n\n`)
+    
+    // Re-throw with user-friendly message
+    throw new Error(error.message || 'Failed to create gold transaction')
   }
 }
 

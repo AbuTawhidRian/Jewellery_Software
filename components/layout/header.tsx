@@ -77,12 +77,11 @@ export function Header({ user }: HeaderProps) {
             <a href="/settings">Settings</a>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <form action="/api/auth/signout" method="POST">
-              <button type="submit" className="w-full text-left">
-                Sign Out
-              </button>
-            </form>
+          <DropdownMenuItem onClick={async () => {
+            const { logout } = await import('@/app/actions/auth')
+            await logout()
+          }}>
+            Sign Out
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

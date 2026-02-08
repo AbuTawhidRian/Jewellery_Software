@@ -1,12 +1,11 @@
-import { getCompanySettings } from '@/app/actions/settings'
-import { SettingsForm } from '@/components/settings/settings-form'
+import { getUsers } from '@/app/actions/users'
+import { UsersTable } from '@/components/users/users-table'
+import { InviteUserDialog } from '@/components/users/invite-user-dialog'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
 
-export const dynamic = 'force-dynamic'
-
-export default async function SettingsPage() {
+export default async function UsersPage() {
   const session = await auth()
   
   if (!session?.user?.email) {
@@ -23,18 +22,21 @@ export default async function SettingsPage() {
     redirect('/dashboard')
   }
 
-  const settings = await getCompanySettings()
+  const users = await getUsers()
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your company configuration and preferences
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Team Members</h1>
+          <p className="text-muted-foreground">
+            Manage your team's access and roles.
+          </p>
+        </div>
+        <InviteUserDialog />
       </div>
 
-      <SettingsForm initialData={settings} />
+      <UsersTable users={users} />
     </div>
   )
 }

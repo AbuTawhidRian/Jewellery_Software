@@ -9,7 +9,7 @@ export type ActionState = {
 
 import { z } from 'zod'
 import { prisma } from '@/lib/db'
-import { signIn } from '@/auth'
+import { signIn, signOut } from '@/auth'
 import { hashPassword, comparePassword } from '@/lib/auth'
 import { UserRole, SubscriptionStatus } from '@prisma/client'
 import { cookies } from 'next/headers'
@@ -98,15 +98,15 @@ export async function register(prevState: ActionState, formData: FormData): Prom
         },
       })
 
-      // Create User (Company Admin)
+      // Create User (Owner - can manage multiple companies)
       await tx.user.create({
         data: {
             email,
             passwordHash: hashedPassword,
             name: adminName,
-            role: UserRole.COMPANY_ADMIN,
+            role: UserRole.OWNER,
             tenantId: tenant.id,
-            companyId: company.id
+            companyId: company.id // Initial company, but OWNER can access all companies in tenant
         }
       })
     })
@@ -173,7 +173,6 @@ export async function login(prevState: ActionState, formData: FormData): Promise
 }
 
 export async function logout() {
-    const cookieStore = await cookies()
-    cookieStore.delete('session')
-    redirect('/login')
+  'use server'
+  await signOut({ redirectTo: '/login' })
 }
