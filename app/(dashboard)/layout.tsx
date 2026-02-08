@@ -18,13 +18,17 @@ export default async function DashboardLayout({
   // Fetch user role for sidebar filtering
   const user = await prisma.user.findUnique({
     where: { email: session.user.email! },
-    select: { role: true }
+    select: { role: true, name: true }
   })
 
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
-      <Sidebar userRole={user?.role} />
+      <Sidebar 
+        userRole={user?.role} 
+        userName={user?.name}
+        userEmail={session.user.email}
+      />
 
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">

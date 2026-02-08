@@ -16,60 +16,64 @@ interface CashTransactionsTableProps {
   transactions: any[]
 }
 
+import { useLanguage } from '@/components/providers/language-provider'
+
 export function CashTransactionsTable({ transactions }: CashTransactionsTableProps) {
+  const { t } = useLanguage()
+
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Date</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Account / Customer</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead>Notes</TableHead>
+            <TableHead>{t.table.date}</TableHead>
+            <TableHead>{t.table.type}</TableHead>
+            <TableHead>{t.table.customer} / {t.table.vendor}</TableHead>
+            <TableHead>{t.table.amount}</TableHead>
+            <TableHead>{t.table.notes}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {transactions.length === 0 ? (
             <TableRow>
               <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                No transactions found.
+                {t.table.noData}
               </TableCell>
             </TableRow>
           ) : (
-            transactions.map((t) => (
-              <TableRow key={t.id}>
-                <TableCell>{format(new Date(t.date), 'dd MMM yyyy')}</TableCell>
+            transactions.map((t_item) => (
+              <TableRow key={t_item.id}>
+                <TableCell>{format(new Date(t_item.date), 'dd MMM yyyy')}</TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={t.type === 'RECEIVE' ? 'text-green-600 border-green-600' : 'text-red-600 border-red-600'}>
-                    {t.type}
+                  <Badge variant="outline" className={t_item.type === 'RECEIVE' ? 'text-green-600 border-green-600' : 'text-red-600 border-red-600'}>
+                    {t_item.type}
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  {t.account ? (
+                  {t_item.account ? (
                     <div className="flex flex-col">
-                      <span className="font-medium text-blue-600">{t.account.name}</span>
-                      <span className="text-xs text-muted-foreground uppercase">{t.account.type}</span>
+                      <span className="font-medium text-blue-600">{t_item.account.name}</span>
+                      <span className="text-xs text-muted-foreground uppercase">{t_item.account.type}</span>
                     </div>
-                  ) : t.vendor ? (
+                  ) : t_item.vendor ? (
                     <div className="flex flex-col">
-                      <span className="font-medium text-purple-600">{t.vendor.name}</span>
-                      <span className="text-xs text-muted-foreground uppercase">Vendor</span>
+                      <span className="font-medium text-purple-600">{t_item.vendor.name}</span>
+                      <span className="text-xs text-muted-foreground uppercase">{t.table.vendor}</span>
                     </div>
-                  ) : t.customer ? (
+                  ) : t_item.customer ? (
                     <div className="flex flex-col">
-                      <span className="font-medium">{t.customer.name}</span>
-                      <span className="text-xs text-muted-foreground italic">Customer Payment</span>
+                      <span className="font-medium">{t_item.customer.name}</span>
+                      <span className="text-xs text-muted-foreground italic">{t.table.customer}</span>
                     </div>
                   ) : (
                     <span className="text-muted-foreground">-</span>
                   )}
                 </TableCell>
-                <TableCell className={`font-bold ${t.type === 'RECEIVE' ? 'text-green-600' : 'text-red-600'}`}>
-                  {t.type === 'RECEIVE' ? '+' : '-'} {formatCurrencyValue(Number(t.amount), t.currency)}
+                <TableCell className={`font-bold ${t_item.type === 'RECEIVE' ? 'text-green-600' : 'text-red-600'}`}>
+                  {t_item.type === 'RECEIVE' ? '+' : '-'} {formatCurrencyValue(Number(t_item.amount), t_item.currency)}
                 </TableCell>
-                <TableCell className="max-w-[200px] truncate" title={t.notes || ''}>
-                  {t.notes || '-'}
+                <TableCell className="max-w-[200px] truncate" title={t_item.notes || ''}>
+                  {t_item.notes || '-'}
                 </TableCell>
               </TableRow>
             ))

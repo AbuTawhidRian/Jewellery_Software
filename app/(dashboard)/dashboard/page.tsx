@@ -37,14 +37,14 @@ export default async function DashboardPage() {
         {/* Gold Balance Card - Amber/Yellow */}
         <Card className="bg-amber-50 border-amber-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-amber-900">Gold Balance</CardTitle>
+            <CardTitle className="text-sm font-medium text-amber-900">Pure Gold Balance (Std)</CardTitle>
             <Coins className="h-5 w-5 text-amber-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-amber-900">{metrics.goldBalance}g</div>
-            <p className="text-xs text-amber-700 mt-1">
-              Pure gold in inventory
-            </p>
+            <div className="text-3xl font-bold text-amber-900">{metrics.pureGoldBalance}g</div>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-xs text-amber-700"> Total Weight: {metrics.goldBalance}g</p>
+            </div>
             {/* Karat Breakdown */}
             <div className="mt-4 space-y-2">
               <div className="flex items-center justify-between text-sm">

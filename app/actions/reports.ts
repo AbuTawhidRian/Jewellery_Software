@@ -1,7 +1,7 @@
 'use server'
-
 import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
+import { purityToKarat } from '@/lib/karat-utils'
 
 // Get current user's company
 async function getCurrentUserCompany() {
@@ -170,7 +170,7 @@ export async function getCustomerTransactionHistory() {
       customerName: t.customer?.name || 'Unknown',
       type: t.type,
       transactionType: 'GOLD' as const,
-      amount: `${t.weight}g @ ${t.purity}K`,
+      amount: `${t.weight}g (${purityToKarat(Number(t.purity))})`,
       notes: t.notes
     })),
     ...cashTransactions.map(t => ({

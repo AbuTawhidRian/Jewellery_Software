@@ -22,6 +22,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { deleteCustomer } from '@/app/actions/customers'
 import { toast } from 'sonner'
+import { useLanguage } from '@/components/providers/language-provider'
 
 type Customer = {
   id: string
@@ -36,6 +37,7 @@ type Customer = {
 }
 
 export function CustomersTable({ customers }: { customers: Customer[] }) {
+  const { t } = useLanguage()
   const [search, setSearch] = useState('')
 
   const filtered = customers.filter(c => 
@@ -45,6 +47,7 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
   )
 
   const handleDelete = async (id: string, name: string) => {
+    // TODO: Add localized confirm dialog if needed, for now standard confirm
     if (!confirm(`Are you sure you want to delete customer "${name}"?`)) return
 
     try {
@@ -58,7 +61,7 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
   return (
     <div className="space-y-4">
       <Input
-        placeholder="Search customers..."
+        placeholder={t.table.search}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         className="max-w-sm"
@@ -68,11 +71,11 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Company</TableHead>
-              <TableHead className="text-right">Transactions</TableHead>
+              <TableHead>{t.table.name}</TableHead>
+              <TableHead>{t.table.phone}</TableHead>
+              <TableHead>{t.table.email}</TableHead>
+              <TableHead>{t.table.company}</TableHead>
+              <TableHead className="text-right">{t.table.transactions}</TableHead>
               <TableHead className="w-[70px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -80,7 +83,7 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center text-muted-foreground">
-                  No customers found
+                  {t.table.noData}
                 </TableCell>
               </TableRow>
             ) : (
@@ -105,11 +108,11 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuLabel>{t.common.actions}</DropdownMenuLabel>
                         <DropdownMenuItem asChild>
                           <Link href={`/customers/${customer.id}`}>
                             <Pencil className="mr-2 h-4 w-4" />
-                            Edit
+                            {t.common.edit}
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem
@@ -117,7 +120,7 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
                           onClick={() => handleDelete(customer.id, customer.name)}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
+                          {t.common.delete}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

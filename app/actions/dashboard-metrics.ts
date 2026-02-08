@@ -47,25 +47,27 @@ export async function getDashboardMetrics() {
   
   const goldTransactions = await prisma.goldLedger.findMany({
     where: companyId ? { companyId } : { company: { tenantId } },
-    select: { weight: true, type: true }
+    select: { weight: true, type: true, purity: true }
   })
 
   let goldBalance = 0
+  let pureGoldBalance = 0
+  
   goldTransactions.forEach(t => {
       const weight = Number(t.weight)
+      const purity = Number(t.purity)
+      const pureWeight = weight * purity
+      
       if (t.type === 'RECEIVE') {
           goldBalance += weight
+          pureGoldBalance += pureWeight
       } else if (t.type === 'PAY') {
           goldBalance -= weight
-      }
-      // ADJUSTMENT might be positive or negative, but usually implied by the context.
-      // For now, let's treat it as neutral or handle if needed.
-      // If adjustment is positive in DB, we might want to add, but we don't know the intent without a sign.
-      // Assuming 'weight' is always positive in DB, we depend on type.
-      // If adjustment adds gold, it should probably be RECEIVE or a specific ADJ_IN type.
-      if (t.type === 'ADJUSTMENT') {
+          pureGoldBalance -= pureWeight
+      } else if (t.type === 'ADJUSTMENT') {
           // crude assumption: it adds
-          goldBalance += weight 
+          goldBalance += weight
+          pureGoldBalance += pureWeight
       }
   })
 
@@ -122,6 +124,7 @@ export async function getDashboardMetrics() {
 
   return {
     goldBalance: goldBalance.toFixed(3),
+    pureGoldBalance: pureGoldBalance.toFixed(3),
     cashBalance: formattedCashBalances.length > 0 ? formattedCashBalances : [{ currency: 'USD', amount: '0.00' }],
     totalCustomers,
     todayRate: rate ? Number(rate.gold24k).toFixed(2) : null
@@ -179,18 +182,20 @@ export async function getGoldBreakdown() {
       netWeight = weight
     } else if (t.type === 'PAY') {
       netWeight = -weight
+    } else if (t.type === 'ADJUSTMENT') {
+      netWeight = weight
     }
 
     // Map purity to karat category using custom mappings or fallbacks
-    const p24 = customKarats['24'] || 99.0
-    const p22 = customKarats['22'] || 91.0
-    const p18 = customKarats['18'] || 75.0
+    const p24 = customKarats['24'] || 0.99
+    const p22 = customKarats['22'] || 0.91
+    const p18 = customKarats['18'] || 0.75
 
-    if (purity >= p24 - 0.5) {
+    if (purity >= p24 - 0.005) {
       k24Balance += netWeight
-    } else if (purity >= p22 - 1.0 && purity < p24 - 0.5) {
+    } else if (purity >= p22 - 0.01 && purity < p24 - 0.005) {
       k22Balance += netWeight
-    } else if (purity >= p18 - 2.0 && purity < p22 - 1.0) {
+    } else if (purity >= p18 - 0.02 && purity < p22 - 0.01) {
       k18Balance += netWeight
     }
   })

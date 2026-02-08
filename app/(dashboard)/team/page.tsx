@@ -4,6 +4,7 @@ import { InviteUserDialog } from '@/components/users/invite-user-dialog'
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/db'
+import { getCompanies } from '@/app/actions/companies'
 
 export default async function UsersPage() {
   const session = await auth()
@@ -23,6 +24,17 @@ export default async function UsersPage() {
   }
 
   const users = await getUsers()
+  
+  let companies: { id: string; name: string }[] = []
+  if (user.role === 'OWNER' || user.role === 'SUPER_ADMIN') {
+    // Only fetch companies for owners/super admins who can assign them
+    try {
+      companies = await getCompanies()
+    } catch (error) {
+      console.error('Failed to fetch companies:', error)
+      // Don't crash the page, just pass empty array
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -33,7 +45,7 @@ export default async function UsersPage() {
             Manage your team's access and roles.
           </p>
         </div>
-        <InviteUserDialog />
+        <InviteUserDialog companies={companies} currentUserRole={user.role} />
       </div>
 
       <UsersTable users={users} />

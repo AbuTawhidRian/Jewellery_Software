@@ -15,32 +15,37 @@ import {
   Settings,
 } from 'lucide-react'
 
+import { useLanguage } from '@/components/providers/language-provider'
+
 interface NavigationItem {
-  name: string
+  key: keyof import('@/lib/i18n/dictionaries').Dictionary['sidebar']
   href: string
   icon: any
-  roles?: ('OWNER' | 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'STAFF')[]
+  roles?: string[]
 }
 
 const navigation: NavigationItem[] = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Gold Ledger', href: '/gold-ledger', icon: Gem },
-  { name: 'Cash Ledger', href: '/cash-ledger', icon: Wallet },
-  { name: 'Customers', href: '/customers', icon: Users },
-  { name: 'Vendors', href: '/vendors', icon: Store },
+  { key: 'dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { key: 'goldLedger', href: '/gold-ledger', icon: Gem },
+  { key: 'cashLedger', href: '/cash-ledger', icon: Wallet },
+  { key: 'customers', href: '/customers', icon: Users },
+  { key: 'vendors', href: '/vendors', icon: Store },
 
-  { name: 'Companies / Branches', href: '/companies', icon: Building2, roles: ['OWNER', 'SUPER_ADMIN'] },
-  { name: 'Team', href: '/team', icon: Users, roles: ['OWNER', 'SUPER_ADMIN', 'COMPANY_ADMIN'] },
-  { name: 'Reports', href: '/reports', icon: FileText },
-  { name: 'Settings', href: '/settings', icon: Settings, roles: ['OWNER', 'SUPER_ADMIN', 'COMPANY_ADMIN'] },
+  { key: 'companies', href: '/companies', icon: Building2, roles: ['OWNER', 'SUPER_ADMIN'] },
+  { key: 'team', href: '/team', icon: Users, roles: ['OWNER', 'SUPER_ADMIN', 'COMPANY_ADMIN'] },
+  { key: 'reports', href: '/reports', icon: FileText },
+  { key: 'settings', href: '/settings', icon: Settings, roles: ['OWNER', 'SUPER_ADMIN', 'COMPANY_ADMIN'] },
 ]
 
 interface SidebarProps {
-  userRole?: 'OWNER' | 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'STAFF'
+  userRole?: string
+  userName?: string | null
+  userEmail?: string | null
 }
 
-export function Sidebar({ userRole }: SidebarProps) {
+export function Sidebar({ userRole, userName, userEmail }: SidebarProps) {
   const pathname = usePathname()
+  const { t } = useLanguage()
 
   // Filter navigation items based on user role
   const filteredNavigation = navigation.filter(item => {
@@ -49,6 +54,14 @@ export function Sidebar({ userRole }: SidebarProps) {
     // If roles specified, check if user's role is in the allowed roles
     return userRole && item.roles.includes(userRole)
   })
+  
+  // Format role for display
+  const displayRole = userRole ? userRole.replace('_', ' ') : 'User'
+
+  // Get initials for avatar
+  const initials = userName
+    ? userName.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()
+    : userEmail?.substring(0, 2).toUpperCase() || 'U'
 
   return (
     <div className="hidden border-r bg-white lg:block lg:w-64">
@@ -72,7 +85,7 @@ export function Sidebar({ userRole }: SidebarProps) {
             const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
             return (
               <Link
-                key={item.name}
+                key={item.key}
                 href={item.href}
                 className={cn(
                   'group flex items-center justify-between rounded-xl px-4 py-3 text-sm font-medium transition-all',
@@ -86,7 +99,7 @@ export function Sidebar({ userRole }: SidebarProps) {
                     "h-5 w-5",
                     isActive ? "text-white" : "text-gray-400"
                   )} />
-                  <span>{item.name}</span>
+                  <span>{t.sidebar[item.key]}</span>
                 </div>
                 {isActive && (
                   <ChevronRight className="h-4 w-4" />
@@ -99,12 +112,15 @@ export function Sidebar({ userRole }: SidebarProps) {
         {/* User Profile Section */}
         <div className="border-t p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 text-white font-semibold">
-              R
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-500 text-white font-semibold">
+              {initials}
             </div>
             <div className="flex-1 overflow-hidden">
-              <p className="text-sm font-semibold text-gray-900">Rian Bitm</p>
-              <p className="truncate text-xs text-gray-500">bitmrian@gmail.com</p>
+              <p className="truncate text-sm font-semibold text-gray-900">{userName || 'User'}</p>
+              <div className="flex items-center justify-between">
+                <p className="truncate text-xs text-gray-500" title={userEmail || ''}>{userEmail}</p>
+              </div>
+              <p className="mt-0.5 text-[10px] font-medium text-orange-600 uppercase tracking-wider">{displayRole}</p>
             </div>
           </div>
         </div>

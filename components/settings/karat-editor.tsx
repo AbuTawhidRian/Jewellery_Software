@@ -89,7 +89,7 @@ export function KaratEditor({ value, onChange }: KaratEditorProps) {
         <div>
           <Label>Karat Standards</Label>
           <p className="text-sm text-muted-foreground">
-            Configure purity percentage for each karat value
+            Configure decimal purity standard for each karat value (e.g. 0.9160)
           </p>
         </div>
         <Select onValueChange={loadPreset}>
@@ -119,7 +119,7 @@ export function KaratEditor({ value, onChange }: KaratEditorProps) {
           <TableHeader>
             <TableRow>
               <TableHead>Karat (K)</TableHead>
-              <TableHead>Purity (%)</TableHead>
+              <TableHead>Purity (Std)</TableHead>
               <TableHead className="w-[100px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -141,10 +141,10 @@ export function KaratEditor({ value, onChange }: KaratEditorProps) {
                 <TableCell>
                   <Input
                     type="number"
-                    step="0.01"
+                    step="0.0001"
                     value={item.purity}
                     onChange={(e) => updateItem(item.id, 'purity', parseFloat(e.target.value) || 0)}
-                    placeholder="91.6"
+                    placeholder="0.916"
                     className="w-32"
                   />
                 </TableCell>

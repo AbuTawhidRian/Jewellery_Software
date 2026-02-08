@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button'
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
 import {
@@ -16,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { LanguageSwitcher } from './language-switcher'
 
 interface HeaderProps {
   user?: {
@@ -42,6 +46,12 @@ export function Header({ user }: HeaderProps) {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-64 p-0">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Navigation Menu</SheetTitle>
+            <SheetDescription>
+              Mobile navigation menu for accessing different sections of the application.
+            </SheetDescription>
+          </SheetHeader>
           {/* Mobile navigation will go here */}
           <div className="p-4">
             <p className="text-sm text-muted-foreground">Mobile menu coming soon</p>
@@ -51,6 +61,8 @@ export function Header({ user }: HeaderProps) {
 
       {/* Spacer */}
       <div className="flex-1" />
+
+      <LanguageSwitcher />
 
       {/* User menu */}
       <DropdownMenu>

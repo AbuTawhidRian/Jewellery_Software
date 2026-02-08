@@ -10,7 +10,7 @@ import fs from 'fs'
 const goldTransactionSchema = z.object({
   type: z.enum(['RECEIVE', 'PAY', 'ADJUSTMENT']),
   weight: z.coerce.number().positive('Weight must be positive'),
-  purity: z.coerce.number().min(0).max(100, 'Purity must be between 0 and 100'),
+  purity: z.coerce.number().min(0).max(1.0, 'Purity must be between 0 and 1.0'),
   customerId: z.string().optional().nullable(),
   vendorId: z.string().optional().nullable(),
   date: z.date().optional(),
@@ -295,16 +295,15 @@ export async function getGoldStats() {
       }
 
       // Map to karat buckets using custom mappings or fallbacks
-      // We'll define ranges based on the custom mappings
-      const p24 = customKarats['24'] || 99.9
-      const p22 = customKarats['22'] || 91.6
-      const p18 = customKarats['18'] || 75.0
+      const p24 = customKarats['24'] || 0.99
+      const p22 = customKarats['22'] || 0.91
+      const p18 = customKarats['18'] || 0.75
 
-      if (purity >= p24 - 0.5) {
+      if (purity >= p24 - 0.005) {
         k24Balance += netWeight
-      } else if (purity >= p22 - 1.0 && purity < p24 - 0.5) {
+      } else if (purity >= p22 - 0.01 && purity < p24 - 0.005) {
         k22Balance += netWeight
-      } else if (purity >= p18 - 2.0 && purity < p22 - 1.0) {
+      } else if (purity >= p18 - 0.02 && purity < p22 - 0.01) {
         k18Balance += netWeight
       }
     })

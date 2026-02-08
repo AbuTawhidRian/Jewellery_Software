@@ -16,6 +16,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -38,6 +39,10 @@ const settingsSchema = z.object({
   country: z.string().min(1, 'Country is required'),
   currency: z.string().min(3).max(3),
   timezone: z.string().min(1),
+  address: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().email('Invalid email').optional().or(z.literal('')),
+  trn: z.string().optional(),
   currencies: z.array(z.string()),
   customKarats: z.record(z.string(), z.number()),
 })
@@ -48,6 +53,10 @@ interface SettingsFormProps {
     country: string
     currency: string
     timezone: string
+    address: string | null
+    phone: string | null
+    email: string | null
+    trn: string | null
     currencies: string[] | null
     customKarats: Record<string, number> | null
   }
@@ -64,6 +73,10 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
       country: initialData.country || '',
       currency: initialData.currency || 'USD',
       timezone: initialData.timezone || 'UTC',
+      address: initialData.address || '',
+      phone: initialData.phone || '',
+      email: initialData.email || '',
+      trn: initialData.trn || '',
       currencies: initialData.currencies || [],
       customKarats: initialData.customKarats || {},
     },
@@ -86,7 +99,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="flex w-full justify-start overflow-x-auto">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="currency">Currency</TabsTrigger>
             <TabsTrigger value="rates">Metal Rates</TabsTrigger>
@@ -155,6 +168,63 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                     )}
                   />
                 </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Address</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="email" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="trn"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>TRN Number (Tax Registration Number)</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Company Address</FormLabel>
+                      <FormControl>
+                        <Textarea {...field} rows={3} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </CardContent>
             </Card>
           </TabsContent>

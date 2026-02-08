@@ -43,6 +43,10 @@ export async function createCompany(data: {
   country: string
   currency?: string
   timezone?: string
+  address?: string
+  phone?: string
+  email?: string
+  trn?: string
 }) {
   const session = await auth()
   
@@ -85,6 +89,10 @@ export async function createCompany(data: {
       country: data.country,
       currency: data.currency || 'USD',
       timezone: data.timezone || 'UTC',
+      address: data.address,
+      phone: data.phone,
+      email: data.email,
+      trn: data.trn,
       tenantId: user.tenantId,
     }
   })
@@ -98,6 +106,10 @@ export async function updateCompany(companyId: string, data: {
   country?: string
   currency?: string
   timezone?: string
+  address?: string
+  phone?: string
+  email?: string
+  trn?: string
 }) {
   const session = await auth()
   

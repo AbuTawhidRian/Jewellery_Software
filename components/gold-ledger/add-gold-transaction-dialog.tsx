@@ -188,12 +188,12 @@ export function AddGoldTransactionDialog({
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="purity">Purity (%)</Label>
+                <Label htmlFor="purity">Purity (Std)</Label>
                 <Input
                   id="purity"
                   type="number"
-                  step="0.01"
-                  placeholder="91.60"
+                  step="0.0001"
+                  placeholder="0.916"
                   value={formData.purity}
                   onChange={(e) => setFormData({ ...formData, purity: e.target.value, karat: 'custom' })}
                   required

@@ -90,6 +90,8 @@ export async function updateTodayMetalRate(data: z.infer<typeof metalRateSchema>
   tomorrow.setDate(tomorrow.getDate() + 1)
 
   // Check if rate exists for today
+  console.log('Update Metal Rate:', { companyId: user.companyId, date: today })
+
   const existingRate = await prisma.metalRate.findFirst({
     where: {
       companyId: user.companyId,
@@ -100,8 +102,10 @@ export async function updateTodayMetalRate(data: z.infer<typeof metalRateSchema>
     }
   })
 
+  console.log('Existing Rate:', existingRate)
+
   if (existingRate) {
-    await prisma.metalRate.update({
+    const updated = await prisma.metalRate.update({
       where: { id: existingRate.id },
       data: {
         gold24k: validated.gold24k,
@@ -110,17 +114,24 @@ export async function updateTodayMetalRate(data: z.infer<typeof metalRateSchema>
         silver: validated.silver,
       }
     })
+    console.log('Updated:', updated)
   } else {
-    await prisma.metalRate.create({
-      data: {
-        companyId: user.companyId,
-        date: today, // Store as midnight
-        gold24k: validated.gold24k,
-        gold22k: validated.gold22k,
-        gold18k: validated.gold18k,
-        silver: validated.silver,
-      }
-    })
+    try {
+      const created = await prisma.metalRate.create({
+        data: {
+          companyId: user.companyId,
+          date: today, // Store as midnight
+          gold24k: validated.gold24k,
+          gold22k: validated.gold22k,
+          gold18k: validated.gold18k,
+          silver: validated.silver,
+        }
+      })
+      console.log('Created:', created)
+    } catch (e) {
+      console.error('Create failed:', e)
+      throw e
+    }
   }
 
   revalidatePath('/dashboard')

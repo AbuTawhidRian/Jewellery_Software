@@ -59,6 +59,10 @@ model Company {
   tenantId     String
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
+  address      String?
+  phone        String?
+  email        String?
+  trn          String?
   currencies   Json?
   customKarats Json?
   accounts     Account[]
@@ -127,7 +131,7 @@ model GoldLedger {
   id                    String          @id @default(uuid())
   date                  DateTime        @default(now())
   weight                Decimal         @db.Decimal(10, 3)
-  purity                Decimal         @db.Decimal(5, 2)
+  purity                Decimal         @db.Decimal(10, 6)
   notes                 String?
   companyId             String
   customerId            String?

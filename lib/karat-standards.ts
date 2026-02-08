@@ -21,14 +21,14 @@ export const KARAT_STANDARDS: KaratStandard[] = [
     name: 'International Standard',
     description: 'Commonly used worldwide',
     mappings: {
-      '24': 99.9,
-      '23': 95.8,
-      '22': 91.67,
-      '21': 87.5,
-      '20': 83.33,
-      '18': 75.0,
-      '14': 58.5,
-      '10': 41.7,
+      '24': 0.9999,
+      '23': 0.958,
+      '22': 0.9167,
+      '21': 0.875,
+      '20': 0.8333,
+      '18': 0.750,
+      '14': 0.585,
+      '10': 0.417,
     }
   },
   {
@@ -36,10 +36,10 @@ export const KARAT_STANDARDS: KaratStandard[] = [
     name: 'Middle East Standard',
     description: 'Common in UAE, Saudi Arabia, Qatar',
     mappings: {
-      '24': 99.9,
-      '22': 91.6,
-      '21': 87.5,
-      '18': 75.0,
+      '24': 0.9999,
+      '22': 0.916,
+      '21': 0.875,
+      '18': 0.750,
     }
   },
   {
@@ -47,10 +47,10 @@ export const KARAT_STANDARDS: KaratStandard[] = [
     name: 'Indian Standard',
     description: 'Popular in India and South Asia',
     mappings: {
-      '24': 99.9,
-      '22': 91.6,
-      '21': 87.5,
-      '18': 75.0,
+      '24': 0.9999,
+      '22': 0.916,
+      '21': 0.875,
+      '18': 0.750,
     }
   },
 ]
@@ -81,8 +81,8 @@ export function validateKaratMappings(mappings: Record<string, number>): {
       errors.push(`Invalid karat value: ${karat}. Must be between 0 and 24.`)
     }
     
-    if (isNaN(p) || p < 0 || p > 100) {
-      errors.push(`Invalid purity for ${karat}K: ${purity}. Must be between 0 and 100.`)
+    if (isNaN(p) || p < 0 || p > 1.0) {
+      errors.push(`Invalid purity for ${karat}K: ${purity}. Must be between 0 and 1.0.`)
     }
   })
   
@@ -106,8 +106,8 @@ export function getPurityForKarat(
     return mappings[karatStr]
   }
   
-  // Fallback: calculate based on 24K = 100% purity
-  return (karat / 24) * 100
+  // Fallback: calculate based on 24K = 1.0 purity
+  return karat / 24
 }
 
 /**
@@ -121,7 +121,7 @@ export function getKaratForPurity(
   
   // Find closest match
   let closestKarat = '24'
-  let smallestDiff = 100
+  let smallestDiff = 1.0
   
   Object.entries(mappings).forEach(([karat, karatPurity]) => {
     const diff = Math.abs(karatPurity - purity)

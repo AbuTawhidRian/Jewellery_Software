@@ -1,10 +1,6 @@
 /**
- * Utility functions for converting between purity percentage and karat values
- */
-
-/**
- * Convert purity percentage to karat
- * @param purity - Purity as percentage (e.g., 99.99, 91.60, 75.00)
+ * Convert purity to karat
+ * @param purity - Purity as decimal standard (e.g., 0.9999, 0.9160, 0.7500)
  * @param customMappings - Optional custom karat-to-purity mappings
  * @returns Karat value as string (e.g., "24K", "22K", "18K")
  */
@@ -12,7 +8,7 @@ export function purityToKarat(purity: number, customMappings?: Record<string, nu
   if (customMappings && Object.keys(customMappings).length > 0) {
     // Find closest match in custom mappings
     let closestKarat = '24'
-    let smallestDiff = 100
+    let smallestDiff = 1.0
     
     Object.entries(customMappings).forEach(([karat, karatPurity]) => {
       const diff = Math.abs(karatPurity - purity)
@@ -22,44 +18,44 @@ export function purityToKarat(purity: number, customMappings?: Record<string, nu
       }
     })
     
-    // Only return the custom karat if the difference is small enough (e.g., 0.5%)
-    if (smallestDiff < 0.5) {
+    // Only return the custom karat if the difference is small enough (e.g., 0.005)
+    if (smallestDiff < 0.005) {
       return `${closestKarat}K`
     }
   }
 
-  // Fallback to standard mappings
-  if (purity >= 99.0) return '24K'
-  if (purity >= 95.8) return '23K'
-  if (purity >= 91.6) return '22K'
-  if (purity >= 87.5) return '21K'
-  if (purity >= 83.3) return '20K'
-  if (purity >= 79.2) return '19K'
-  if (purity >= 75.0) return '18K'
-  if (purity >= 58.5) return '14K'
-  if (purity >= 41.7) return '10K'
-  return `${Math.round((purity / 100) * 24)}K`
+  // Fallback to standard mappings (decimal values)
+  if (purity >= 0.990) return '24K'
+  if (purity >= 0.958) return '23K'
+  if (purity >= 0.916) return '22K'
+  if (purity >= 0.875) return '21K'
+  if (purity >= 0.833) return '20K'
+  if (purity >= 0.792) return '19K'
+  if (purity >= 0.750) return '18K'
+  if (purity >= 0.585) return '14K'
+  if (purity >= 0.417) return '10K'
+  return `${Math.round(purity * 24)}K`
 }
 
 /**
- * Convert karat to purity percentage
+ * Convert karat to purity decimal
  * @param karat - Karat value (e.g., 24, 22, 18)
- * @returns Purity as percentage
+ * @returns Purity as decimal
  */
 export function karatToPurity(karat: number): number {
-  return (karat / 24) * 100
+  return karat / 24
 }
 
 /**
  * Format purity for display with karat equivalent
- * @param purity - Purity as percentage
+ * @param purity - Purity as decimal
  * @param customMappings - Optional custom karat-to-purity mappings
- * @returns Formatted string (e.g., "99.99% (24K)")
+ * @returns Formatted string (e.g., "0.9999 (24K)")
  */
 export function formatPurity(purity: number, customMappings?: Record<string, number>): string {
-  const purityStr = Number(purity).toFixed(2)
+  const purityStr = Number(purity).toFixed(4)
   const karat = purityToKarat(purity, customMappings)
-  return `${purityStr}% (${karat})`
+  return `${purityStr} (${karat})`
 }
 
 

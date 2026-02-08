@@ -21,6 +21,7 @@ import { formatPurity, formatTransactionType, getTransactionTypeColor } from '@/
 import { format } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
 import { Search } from 'lucide-react'
+import { useLanguage } from '@/components/providers/language-provider'
 
 interface GoldTransaction {
   id: string
@@ -38,6 +39,7 @@ interface GoldTransactionsTableProps {
 }
 
 export function GoldTransactionsTable({ transactions }: GoldTransactionsTableProps) {
+  const { t } = useLanguage()
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [customerFilter, setCustomerFilter] = useState('all')
@@ -84,7 +86,7 @@ export function GoldTransactionsTable({ transactions }: GoldTransactionsTablePro
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search by customer or notes..."
+            placeholder={t.table.search}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -93,10 +95,10 @@ export function GoldTransactionsTable({ transactions }: GoldTransactionsTablePro
         
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue placeholder="Filter by type" />
+            <SelectValue placeholder={t.table.filterType} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="all">{t.table.allTypes}</SelectItem>
             <SelectItem value="RECEIVE">Receive (Gold In)</SelectItem>
             <SelectItem value="PAY">Pay (Gold Out)</SelectItem>
             <SelectItem value="ADJUSTMENT">Adjustment</SelectItem>
@@ -106,10 +108,10 @@ export function GoldTransactionsTable({ transactions }: GoldTransactionsTablePro
 
         <Select value={customerFilter} onValueChange={setCustomerFilter}>
           <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue placeholder="Filter by customer" />
+            <SelectValue placeholder={t.table.filterCustomer} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Customers</SelectItem>
+            <SelectItem value="all">{t.table.allCustomers}</SelectItem>
             {customers.map((customer) => (
               <SelectItem key={customer.id} value={customer.id}>
                 {customer.name}
@@ -124,19 +126,19 @@ export function GoldTransactionsTable({ transactions }: GoldTransactionsTablePro
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead className="text-right">Weight (g)</TableHead>
-              <TableHead>Purity</TableHead>
-              <TableHead>Notes</TableHead>
+              <TableHead>{t.table.date}</TableHead>
+              <TableHead>{t.table.type}</TableHead>
+              <TableHead>{t.table.customer}</TableHead>
+              <TableHead className="text-right">{t.table.weight}</TableHead>
+              <TableHead>{t.table.purity}</TableHead>
+              <TableHead>{t.table.notes}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredTransactions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="h-24 text-center">
-                  No transactions found.
+                  {t.table.noData}
                 </TableCell>
               </TableRow>
             ) : (
@@ -157,12 +159,12 @@ export function GoldTransactionsTable({ transactions }: GoldTransactionsTablePro
                     {transaction.customer ? (
                       <div className="flex flex-col">
                         <span className="font-medium text-sm">{transaction.customer.name}</span>
-                        <span className="text-xs text-muted-foreground">Customer</span>
+                        <span className="text-xs text-muted-foreground">{t.table.customer}</span>
                       </div>
                     ) : transaction.vendor ? (
                       <div className="flex flex-col">
                         <span className="font-medium text-sm text-purple-600">{transaction.vendor.name}</span>
-                        <span className="text-xs text-muted-foreground uppercase">Vendor</span>
+                        <span className="text-xs text-muted-foreground uppercase">{t.table.vendor}</span>
                       </div>
                     ) : (
                       <span className="text-sm text-muted-foreground">—</span>
@@ -194,7 +196,7 @@ export function GoldTransactionsTable({ transactions }: GoldTransactionsTablePro
 
       {/* Results count */}
       <p className="text-sm text-muted-foreground">
-        Showing {filteredTransactions.length} of {transactions.length} transactions
+        {t.table.showing} {filteredTransactions.length} {t.table.of} {transactions.length} {t.table.transactions}
       </p>
     </div>
   )

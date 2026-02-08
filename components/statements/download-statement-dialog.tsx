@@ -199,7 +199,7 @@ function generateStatementHTML(data: any, entityName: string, entityType: 'custo
             <th>Date</th>
             <th>Type</th>
             <th class="text-right">Weight (g)</th>
-            <th class="text-right">Purity (%)</th>
+            <th class="text-right">Purity (Std)</th>
             ${data.goldTransactions.some((t: any) => t.makingRate) ? '<th class="text-right">Making Rate</th>' : ''}
             <th class="text-right">Running Balance (g)</th>
           </tr>
@@ -210,7 +210,7 @@ function generateStatementHTML(data: any, entityName: string, entityType: 'custo
               <td>${format(new Date(tx.date), 'MMM dd, yyyy')}</td>
               <td><span class="badge badge-${tx.type.toLowerCase()}">${tx.type}</span></td>
               <td class="text-right">${tx.weight.toFixed(3)}</td>
-              <td class="text-right">${tx.purity.toFixed(2)}</td>
+              <td class="text-right">${tx.purity.toFixed(4)}</td>
               ${data.goldTransactions.some((t: any) => t.makingRate) ? `<td class="text-right">${tx.makingRate ? tx.makingRate.toFixed(2) : '-'}</td>` : ''}
               <td class="text-right"><strong>${tx.runningBalance.toFixed(3)}</strong></td>
             </tr>
