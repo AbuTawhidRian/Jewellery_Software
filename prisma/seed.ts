@@ -44,7 +44,6 @@ async function main() {
         name: 'Jewellery Co.',
         country: 'USA',
         currency: 'USD',
-        timezone: 'UTC',
         tenantId: tenant.id,
         branches: {
             create: {

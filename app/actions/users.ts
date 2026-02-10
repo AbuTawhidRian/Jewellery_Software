@@ -82,7 +82,7 @@ export async function updateUserRole(userId: string, newRole: UserRole) {
   }
 
   // Only Admins can update roles
-  if (currentUser.role !== 'SUPER_ADMIN' && currentUser.role !== 'COMPANY_ADMIN') {
+  if (currentUser.role !== 'SUPER_ADMIN' && currentUser.role !== 'OWNER' && currentUser.role !== 'COMPANY_ADMIN') {
     throw new Error('Insufficient permissions')
   }
 
@@ -120,7 +120,7 @@ export async function removeUser(userId: string) {
     throw new Error('User does not belong to a company')
   }
 
-  if (currentUser.role !== 'SUPER_ADMIN' && currentUser.role !== 'COMPANY_ADMIN') {
+  if (currentUser.role !== 'SUPER_ADMIN' && currentUser.role !== 'OWNER' && currentUser.role !== 'COMPANY_ADMIN') {
     throw new Error('Insufficient permissions')
   }
 

@@ -28,11 +28,20 @@ export async function getDashboardMetrics() {
   if (!tenantId) {
      return {
         goldBalance: '0.000',
-        cashBalance: [{ currency: 'USD', amount: '0.00' }],
+        cashBalance: [],
         totalCustomers: 0,
-        todayRate: null
+        todayRate: null,
+        baseCurrency: 'USD'
      }
   }
+
+  // Fetch company base currency
+  const company = companyId ? await prisma.company.findUnique({
+    where: { id: companyId },
+    select: { currency: true }
+  }) : null
+
+  const baseCurrency = company?.currency || 'USD'
 
   // 1. Gold Balance (Sum of all GoldLedger weights)
   // Incoming (Positive) - Outgoing (Negative)? 
@@ -58,10 +67,10 @@ export async function getDashboardMetrics() {
       const purity = Number(t.purity)
       const pureWeight = weight * purity
       
-      if (t.type === 'RECEIVE') {
+      if (['METAL_RECEIPT', 'METAL_RECEIPT_RETURN'].includes(t.type)) {
           goldBalance += weight
           pureGoldBalance += pureWeight
-      } else if (t.type === 'PAY') {
+      } else if (['METAL_PAYMENT', 'METAL_SALE', 'METAL_PURCHASE', 'METAL_PAYMENT_RETURN'].includes(t.type)) {
           goldBalance -= weight
           pureGoldBalance -= pureWeight
       } else if (t.type === 'ADJUSTMENT') {
@@ -82,13 +91,13 @@ export async function getDashboardMetrics() {
 
   cashTransactions.forEach(t => {
       const amount = Number(t.amount)
-      const currency = t.currency || 'USD'
+      const currency = t.currency || baseCurrency
       
       if (!cashBalances[currency]) {
           cashBalances[currency] = 0
       }
 
-      if (t.type === 'RECEIVE') {
+      if (t.type === 'CASH_RECEIPT') {
           cashBalances[currency] += amount
       } else {
           cashBalances[currency] -= amount
@@ -125,9 +134,10 @@ export async function getDashboardMetrics() {
   return {
     goldBalance: goldBalance.toFixed(3),
     pureGoldBalance: pureGoldBalance.toFixed(3),
-    cashBalance: formattedCashBalances.length > 0 ? formattedCashBalances : [{ currency: 'USD', amount: '0.00' }],
+    cashBalance: formattedCashBalances.length > 0 ? formattedCashBalances : [{ currency: baseCurrency, amount: '0.00' }],
     totalCustomers,
-    todayRate: rate ? Number(rate.gold24k).toFixed(2) : null
+    todayRate: rate ? Number(rate.gold24k).toFixed(2) : null,
+    baseCurrency
   }
 }
 
@@ -168,43 +178,55 @@ export async function getGoldBreakdown() {
     select: { weight: true, type: true, purity: true }
   })
 
-  let k24Balance = 0
-  let k22Balance = 0
-  let k18Balance = 0
+  // Determine available karats (from settings or default)
+  const karatMappings = Object.keys(customKarats).length > 0
+    ? customKarats
+    : { '24': 0.999, '22': 0.916, '18': 0.750 }
+
+  // Initialize balances for all mapped karats
+  const balances: Record<string, number> = {}
+  Object.keys(karatMappings).forEach(k => {
+    balances[k] = 0
+  })
 
   goldTransactions.forEach(t => {
     const weight = Number(t.weight)
     const purity = Number(t.purity)
     let netWeight = 0
     
-    // Calculate net weight based on transaction type
-    if (t.type === 'RECEIVE') {
+    if (['METAL_RECEIPT', 'METAL_RECEIPT_RETURN'].includes(t.type)) {
       netWeight = weight
-    } else if (t.type === 'PAY') {
+    } else if (['METAL_PAYMENT', 'METAL_SALE', 'METAL_PURCHASE', 'METAL_PAYMENT_RETURN'].includes(t.type)) {
       netWeight = -weight
     } else if (t.type === 'ADJUSTMENT') {
       netWeight = weight
     }
 
-    // Map purity to karat category using custom mappings or fallbacks
-    const p24 = customKarats['24'] || 0.99
-    const p22 = customKarats['22'] || 0.91
-    const p18 = customKarats['18'] || 0.75
+    // Find the closest matching karat from our mappings
+    let closestKarat = ''
+    let smallestDiff = 1.0
+    
+    Object.entries(karatMappings).forEach(([karat, karatPurity]) => {
+      const diff = Math.abs(Number(karatPurity) - purity)
+      if (diff < smallestDiff) {
+        smallestDiff = diff
+        closestKarat = karat
+      }
+    })
 
-    if (purity >= p24 - 0.005) {
-      k24Balance += netWeight
-    } else if (purity >= p22 - 0.01 && purity < p24 - 0.005) {
-      k22Balance += netWeight
-    } else if (purity >= p18 - 0.02 && purity < p22 - 0.01) {
-      k18Balance += netWeight
+    // Assign to balance if it's a reasonable match (within 0.005)
+    if (closestKarat && smallestDiff < 0.005) {
+      balances[closestKarat] = (balances[closestKarat] || 0) + netWeight
     }
   })
 
-  return {
-    k24: k24Balance.toFixed(3),
-    k22: k22Balance.toFixed(3),
-    k18: k18Balance.toFixed(3)
-  }
+  // Format the response
+  const result: Record<string, string> = {}
+  Object.entries(balances).forEach(([k, val]) => {
+    result[k] = val.toFixed(3)
+  })
+
+  return result
 }
 
 

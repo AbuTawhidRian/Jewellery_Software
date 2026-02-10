@@ -7,7 +7,7 @@ export function ProjectedBarChart({ data }: { data: any[] }) {
         <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data}>
                 <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value: number) => `$${value}`} />
+                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                 <Tooltip 
                     cursor={{fill: 'transparent'}}
                     contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }}

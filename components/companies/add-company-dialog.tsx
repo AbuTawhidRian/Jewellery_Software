@@ -30,7 +30,6 @@ export function AddCompanyDialog() {
     name: '',
     country: '',
     currency: 'USD',
-    timezone: 'UTC',
     address: '',
     phone: '',
     email: '',
@@ -49,7 +48,6 @@ export function AddCompanyDialog() {
         name: '',
         country: '',
         currency: 'USD',
-        timezone: 'UTC',
         address: '',
         phone: '',
         email: '',
@@ -104,7 +102,7 @@ export function AddCompanyDialog() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="country">Country *</Label>
                 <Input
@@ -123,17 +121,6 @@ export function AddCompanyDialog() {
                   value={formData.currency}
                   onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
                   placeholder="AED"
-                  required
-                  disabled={loading}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="timezone">Timezone *</Label>
-                <Input
-                  id="timezone"
-                  value={formData.timezone}
-                  onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
-                  placeholder="Asia/Dubai"
                   required
                   disabled={loading}
                 />

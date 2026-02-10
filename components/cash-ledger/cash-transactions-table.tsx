@@ -45,7 +45,7 @@ export function CashTransactionsTable({ transactions }: CashTransactionsTablePro
               <TableRow key={t_item.id}>
                 <TableCell>{format(new Date(t_item.date), 'dd MMM yyyy')}</TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={t_item.type === 'RECEIVE' ? 'text-green-600 border-green-600' : 'text-red-600 border-red-600'}>
+                  <Badge variant="outline" className={t_item.type === 'CASH_RECEIPT' ? 'text-green-600 border-green-600' : 'text-red-600 border-red-600'}>
                     {t_item.type}
                   </Badge>
                 </TableCell>
@@ -69,8 +69,8 @@ export function CashTransactionsTable({ transactions }: CashTransactionsTablePro
                     <span className="text-muted-foreground">-</span>
                   )}
                 </TableCell>
-                <TableCell className={`font-bold ${t_item.type === 'RECEIVE' ? 'text-green-600' : 'text-red-600'}`}>
-                  {t_item.type === 'RECEIVE' ? '+' : '-'} {formatCurrencyValue(Number(t_item.amount), t_item.currency)}
+                <TableCell className={`font-bold ${t_item.type === 'CASH_RECEIPT' ? 'text-green-600' : 'text-red-600'}`}>
+                  {t_item.type === 'CASH_RECEIPT' ? '+' : '-'} {formatCurrencyValue(Number(t_item.amount), t_item.currency)}
                 </TableCell>
                 <TableCell className="max-w-[200px] truncate" title={t_item.notes || ''}>
                   {t_item.notes || '-'}

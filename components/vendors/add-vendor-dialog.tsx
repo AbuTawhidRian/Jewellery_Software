@@ -15,6 +15,14 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { COUNTRIES } from '@/lib/countries'
+import {
   Form,
   FormControl,
   FormField,
@@ -33,7 +41,8 @@ const vendorSchema = z.object({
   phone: z.string().optional().nullable(),
   email: z.string().email('Invalid email').optional().nullable().or(z.literal('')),
   address: z.string().optional().nullable(),
-  taxId: z.string().optional().nullable(),
+  trn: z.string().optional().nullable(),
+  country: z.string().optional().nullable(),
 })
 
 type VendorFormValues = z.infer<typeof vendorSchema>
@@ -58,7 +67,8 @@ export function AddVendorDialog({ children, open, onOpenChange, vendorToEdit }: 
       phone: '',
       email: '',
       address: '',
-      taxId: '',
+      trn: '',
+      country: '',
     },
   })
 
@@ -71,7 +81,8 @@ export function AddVendorDialog({ children, open, onOpenChange, vendorToEdit }: 
           phone: vendorToEdit.phone || '',
           email: vendorToEdit.email || '',
           address: vendorToEdit.address || '',
-          taxId: vendorToEdit.taxId || '',
+          trn: vendorToEdit.trn || '',
+          country: vendorToEdit.country || '',
         })
       } else {
         form.reset({
@@ -79,7 +90,8 @@ export function AddVendorDialog({ children, open, onOpenChange, vendorToEdit }: 
           phone: '',
           email: '',
           address: '',
-          taxId: '',
+          trn: '',
+          country: '',
         })
       }
     }
@@ -145,18 +157,47 @@ export function AddVendorDialog({ children, open, onOpenChange, vendorToEdit }: 
                 
                 <FormField
                 control={form.control}
-                name="taxId"
+                name="trn"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Tax ID</FormLabel>
+                    <FormLabel>TRN Number</FormLabel>
                     <FormControl>
-                        <Input placeholder="Tax ID / VAT" {...field} value={field.value || ''} />
+                        <Input placeholder="TRN Number" {...field} value={field.value || ''} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
                 )}
                 />
             </div>
+
+            <FormField
+              control={form.control}
+              name="country"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Country</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value || ''}
+                    value={field.value || ''}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Country" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {COUNTRIES.map((country) => (
+                        <SelectItem key={country.code} value={country.name}>
+                          {country.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

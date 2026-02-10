@@ -8,7 +8,11 @@ import fs from 'fs'
 
 // Validation schema for gold transaction
 const goldTransactionSchema = z.object({
-  type: z.enum(['RECEIVE', 'PAY', 'ADJUSTMENT']),
+  type: z.enum([
+    'METAL_PURCHASE', 'METAL_SALE', 'METAL_RECEIPT', 
+    'METAL_PAYMENT', 'METAL_RECEIPT_RETURN', 'METAL_PAYMENT_RETURN',
+    'ADJUSTMENT'
+  ]),
   weight: z.coerce.number().positive('Weight must be positive'),
   purity: z.coerce.number().min(0).max(1.0, 'Purity must be between 0 and 1.0'),
   customerId: z.string().optional().nullable(),
@@ -16,6 +20,7 @@ const goldTransactionSchema = z.object({
   date: z.date().optional(),
   notes: z.string().optional().nullable(),
   makingRate: z.coerce.number().min(0).optional().nullable(),
+  metalRate: z.coerce.number().min(0).optional().nullable(),
 })
 
 type GoldTransactionFormData = z.infer<typeof goldTransactionSchema>
@@ -60,6 +65,7 @@ export async function getGoldTransactions() {
     ...t,
     weight: Number(t.weight),
     purity: Number(t.purity),
+    makingRate: t.makingRate ? Number(t.makingRate) : null,
   }))
 }
 
@@ -107,6 +113,7 @@ export async function createGoldTransaction(data: GoldTransactionFormData) {
           customerId: validated.customerId,
           vendorId: validated.vendorId,
           makingRate: validated.makingRate,
+          metalRate: validated.metalRate,
         },
         include: {
           customer: {
@@ -118,25 +125,58 @@ export async function createGoldTransaction(data: GoldTransactionFormData) {
         }
       })
 
-      // If making rate is provided and customer exists, create cash transaction
-      if (validated.makingRate && validated.makingRate > 0 && validated.customerId) {
+      // Get company currency for cash transactions
+      const company = await tx.company.findUnique({
+        where: { id: companyId },
+        select: { currency: true }
+      })
+      const currency = company?.currency || 'USD'
+
+      // 1. Handle Metal Price Accounting (Purchase/Sale)
+      if (validated.metalRate && validated.metalRate > 0) {
+        const metalValue = validated.weight * validated.metalRate
+        let cashType: TransactionType | null = null
+        let cashNote = ''
+
+        if (validated.type === 'METAL_PURCHASE') {
+          cashType = 'METAL_PURCHASE' // Posting for purchase debt/payment
+          cashNote = `Metal Purchase: ${validated.weight}g @ ${validated.metalRate}/g`
+        } else if (validated.type === 'METAL_SALE') {
+          cashType = 'METAL_SALE' // Posting for sale debt/receipt
+          cashNote = `Metal Sale: ${validated.weight}g @ ${validated.metalRate}/g`
+        }
+
+        if (cashType) {
+          await tx.cashLedger.create({
+            data: {
+              type: cashType,
+              amount: metalValue,
+              currency,
+              date: validated.date || new Date(),
+              notes: `${cashNote}. Account: ${goldTransaction.customer?.name || goldTransaction.vendor?.name || 'Unknown'}`,
+              companyId,
+              customerId: validated.customerId,
+              vendorId: validated.vendorId,
+              goldTransactionId: goldTransaction.id,
+            }
+          })
+        }
+      }
+
+      // 2. Handle Making Charge Accounting
+      if (validated.makingRate && validated.makingRate > 0 && (validated.customerId || validated.vendorId)) {
         const makingCharge = validated.weight * validated.makingRate
         
-        // Get company currency
-        const company = await tx.company.findUnique({
-          where: { id: companyId },
-          select: { currency: true }
-        })
-
         await tx.cashLedger.create({
           data: {
-            type: 'RECEIVE', // Company receives cash from customer for making charges
+            type: 'MAKING_CHARGE', // Specific type for service charges
             amount: makingCharge,
-            currency: company?.currency || 'USD',
+            currency,
             date: validated.date || new Date(),
-            notes: `Making charges for gold transaction (${validated.weight}g @ ${validated.makingRate}/g)`,
+            notes: `Making charges: ${validated.weight}g @ ${validated.makingRate}/g. Account: ${goldTransaction.customer?.name || goldTransaction.vendor?.name || 'Unknown'}`,
             companyId,
             customerId: validated.customerId,
+            vendorId: validated.vendorId,
             goldTransactionId: goldTransaction.id,
           }
         })
@@ -208,16 +248,22 @@ export async function getCustomerGoldBalance(customerId: string) {
     const weightVal = Number(t.weight)
     const purityVal = Number(t.purity)
 
-    if (t.type === 'RECEIVE') {
+    const isInflow = ['METAL_PURCHASE', 'METAL_RECEIPT', 'METAL_PAYMENT_RETURN'].includes(t.type)
+    const isOutflow = ['METAL_SALE', 'METAL_PAYMENT', 'METAL_RECEIPT_RETURN'].includes(t.type)
+
+    if (isInflow) {
       balance += weightVal
-    } else if (t.type === 'PAY') {
+    } else if (isOutflow) {
       balance -= weightVal
+    } else if (t.type === 'ADJUSTMENT') {
+      balance += weightVal // Assuming positive adjustment adds to balance
     }
 
     return {
       ...t,
       weight: weightVal,
       purity: purityVal,
+      makingRate: t.makingRate ? Number(t.makingRate) : null,
     }
   })
 
@@ -245,12 +291,13 @@ export async function getGoldStats() {
 
     if (!user?.companyId && !user?.tenantId) {
       return {
-        totalIn: '0.000',
-        totalOut: '0.000',
-        balance: '0.000',
-        k24: '0.000',
-        k22: '0.000',
-        k18: '0.000'
+        totalInActual: '0.000',
+        totalInPure: '0.000',
+        totalOutActual: '0.000',
+        totalOutPure: '0.000',
+        balanceActual: '0.000',
+        balancePure: '0.000',
+        karatBreakdown: {}
       }
     }
 
@@ -270,57 +317,116 @@ export async function getGoldStats() {
       select: { weight: true, type: true, purity: true }
     })
 
-    let totalIn = 0
-    let totalOut = 0
-    let k24Balance = 0
-    let k22Balance = 0
-    let k18Balance = 0
+    let totalInActual = 0
+    let totalInPure = 0
+    let totalOutActual = 0
+    let totalOutPure = 0
+
+    // Determine available karats (from settings or default)
+    const karatMappings = Object.keys(customKarats).length > 0
+      ? customKarats
+      : { '24': 0.999, '22': 0.916, '18': 0.750 }
+
+    // Initialize breakdown for all mapped karats
+    const karatBreakdown: Record<string, { actual: number; pure: number }> = {}
+    Object.keys(karatMappings).forEach(k => {
+      karatBreakdown[k] = { actual: 0, pure: 0 }
+    })
 
     transactions.forEach(t => {
       const weight = Number(t.weight)
       const purity = Number(t.purity)
+      const pureWeight = weight * purity
 
-      if (t.type === 'RECEIVE') {
-        totalIn += weight
-      } else if (t.type === 'PAY') {
-        totalOut += weight
+      const isInflow = ['METAL_PURCHASE', 'METAL_RECEIPT', 'METAL_PAYMENT_RETURN'].includes(t.type)
+      const isOutflow = ['METAL_SALE', 'METAL_PAYMENT', 'METAL_RECEIPT_RETURN'].includes(t.type)
+
+      if (isInflow) {
+        totalInActual += weight
+        totalInPure += pureWeight
+      } else if (isOutflow) {
+        totalOutActual += weight
+        totalOutPure += pureWeight
+      }
+      
+      if (t.type === 'ADJUSTMENT') {
+        if (weight >= 0) {
+            totalInActual += weight
+            totalInPure += pureWeight
+        } else {
+            totalOutActual += Math.abs(weight)
+            totalOutPure += Math.abs(pureWeight)
+        }
       }
 
       // Calculate net weight for balance
-      let netWeight = 0
-      if (t.type === 'RECEIVE') {
-        netWeight = weight
-      } else if (t.type === 'PAY') {
-        netWeight = -weight
+      let netActual = 0
+      let netPure = 0
+      if (isInflow) {
+        netActual = weight
+        netPure = pureWeight
+      } else if (isOutflow) {
+        netActual = -weight
+        netPure = -pureWeight
+      } else if (t.type === 'ADJUSTMENT') {
+        netActual = weight
+        netPure = pureWeight
       }
 
-      // Map to karat buckets using custom mappings or fallbacks
-      const p24 = customKarats['24'] || 0.99
-      const p22 = customKarats['22'] || 0.91
-      const p18 = customKarats['18'] || 0.75
+      // Find the closest matching karat from our mappings
+      let closestKarat = ''
+      let smallestDiff = 1.0
+      
+      Object.entries(karatMappings).forEach(([karat, karatPurity]) => {
+        const diff = Math.abs(Number(karatPurity) - purity)
+        if (diff < smallestDiff) {
+          smallestDiff = diff
+          closestKarat = karat
+        }
+      })
 
-      if (purity >= p24 - 0.005) {
-        k24Balance += netWeight
-      } else if (purity >= p22 - 0.01 && purity < p24 - 0.005) {
-        k22Balance += netWeight
-      } else if (purity >= p18 - 0.02 && purity < p22 - 0.01) {
-        k18Balance += netWeight
+      // Assign to breakdown if it's a reasonable match
+      if (closestKarat && smallestDiff < 0.005) {
+        if (!karatBreakdown[closestKarat]) {
+          karatBreakdown[closestKarat] = { actual: 0, pure: 0 }
+        }
+        karatBreakdown[closestKarat].actual += netActual
+        karatBreakdown[closestKarat].pure += netPure
       }
     })
 
-    const balance = totalIn - totalOut
+    const balanceActual = totalInActual - totalOutActual
+    const balancePure = totalInPure - totalOutPure
+
+    // Prepare formatted breakdown
+    const formattedBreakdown: Record<string, { actual: string; pure: string }> = {}
+    Object.entries(karatBreakdown).forEach(([k, vals]) => {
+      formattedBreakdown[k] = {
+        actual: vals.actual.toFixed(3),
+        pure: vals.pure.toFixed(3)
+      }
+    })
 
     return {
-      totalIn: totalIn.toFixed(3),
-      totalOut: totalOut.toFixed(3),
-      balance: balance.toFixed(3),
-      k24: k24Balance.toFixed(3),
-      k22: k22Balance.toFixed(3),
-      k18: k18Balance.toFixed(3)
+      totalInActual: totalInActual.toFixed(3),
+      totalInPure: totalInPure.toFixed(3),
+      totalOutActual: totalOutActual.toFixed(3),
+      totalOutPure: totalOutPure.toFixed(3),
+      balanceActual: balanceActual.toFixed(3),
+      balancePure: balancePure.toFixed(3),
+      karatBreakdown: formattedBreakdown
     }
-  } catch (err: any) {
-    fs.appendFileSync('error_debug.log', `[${new Date().toISOString()}] getGoldStats Error: ${err.message}\n${err.stack}\n`)
-    throw err
+  } catch (error) {
+    console.error('Error in getGoldStats:', error)
+    return {
+      totalInActual: '0.000',
+      totalInPure: '0.000',
+      totalOutActual: '0.000',
+      totalOutPure: '0.000',
+      balanceActual: '0.000',
+      balancePure: '0.000',
+      karatBreakdown: {}
+    }
   }
 }
 

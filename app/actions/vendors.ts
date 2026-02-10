@@ -11,7 +11,8 @@ const vendorSchema = z.object({
   phone: z.string().optional().nullable(),
   email: z.string().email('Invalid email').optional().nullable().or(z.literal('')),
   address: z.string().optional().nullable(),
-  taxId: z.string().optional().nullable(),
+  trn: z.string().optional().nullable(),
+  country: z.string().optional().nullable(),
 })
 
 export type VendorFormData = z.infer<typeof vendorSchema>
@@ -171,7 +172,7 @@ export async function deleteVendor(id: string) {
     })
   
     if (!user?.companyId) throw new Error('No company context')
-    if (user.role !== 'SUPER_ADMIN' && user.role !== 'COMPANY_ADMIN') throw new Error('Insufficient permissions')
+    if (user.role !== 'SUPER_ADMIN' && user.role !== 'OWNER' && user.role !== 'COMPANY_ADMIN') throw new Error('Insufficient permissions')
   
     // Check for existing transactions
     const vendorWithTransactions = await prisma.vendor.findUnique({

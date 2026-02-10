@@ -59,21 +59,21 @@ model Company {
   tenantId     String
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
-  address      String?
-  phone        String?
-  email        String?
-  trn          String?
   currencies   Json?
   customKarats Json?
+  address      String?
+  email        String?
+  phone        String?
+  trn          String?
   accounts     Account[]
   branches     Branch[]
   cashLedger   CashLedger[]
   tenant       Tenant       @relation(fields: [tenantId], references: [id])
   customers    Customer[]
-  vendors      Vendor[]
   goldLedger   GoldLedger[]
-  users        User[]
   metalRates   MetalRate[]
+  users        User[]
+  vendors      Vendor[]
 
   @@index([tenantId])
 }
@@ -81,20 +81,15 @@ model Company {
 model MetalRate {
   id        String   @id @default(uuid())
   date      DateTime @default(now())
-  
-  // Base rates (per gram)
-  gold24k   Decimal  @db.Decimal(10, 2) @default(0)
-  gold22k   Decimal  @db.Decimal(10, 2) @default(0)
-  gold18k   Decimal  @db.Decimal(10, 2) @default(0)
-  silver    Decimal  @db.Decimal(10, 2) @default(0)
-  
+  gold24k   Decimal  @default(0) @db.Decimal(10, 2)
+  gold22k   Decimal  @default(0) @db.Decimal(10, 2)
+  gold18k   Decimal  @default(0) @db.Decimal(10, 2)
+  silver    Decimal  @default(0) @db.Decimal(10, 2)
   currency  String   @default("USD")
-  
   companyId String
-  company   Company  @relation(fields: [companyId], references: [id])
-  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  company   Company  @relation(fields: [companyId], references: [id])
 
   @@unique([companyId, date])
 }
@@ -120,6 +115,8 @@ model Customer {
   companyId        String
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
+  country          String?
+  trn              String?
   cashTransactions CashLedger[]
   company          Company      @relation(fields: [companyId], references: [id])
   goldTransactions GoldLedger[]
@@ -137,12 +134,13 @@ model GoldLedger {
   customerId            String?
   createdAt             DateTime        @default(now())
   type                  TransactionType
+  vendorId              String?
   makingRate            Decimal?        @db.Decimal(10, 2)
+  metalRate             Decimal?        @db.Decimal(10, 2)
+  linkedCashTransaction CashLedger?     @relation("GoldMakingCharge")
   company               Company         @relation(fields: [companyId], references: [id])
   customer              Customer?       @relation(fields: [customerId], references: [id])
   vendor                Vendor?         @relation(fields: [vendorId], references: [id])
-  vendorId              String?
-  linkedCashTransaction CashLedger?     @relation("GoldMakingCharge")
 
   @@index([companyId])
   @@index([customerId])
@@ -160,13 +158,13 @@ model CashLedger {
   createdAt         DateTime        @default(now())
   accountId         String?
   type              TransactionType
+  vendorId          String?
   goldTransactionId String?         @unique
   account           Account?        @relation(fields: [accountId], references: [id])
   company           Company         @relation(fields: [companyId], references: [id])
   customer          Customer?       @relation(fields: [customerId], references: [id])
-  vendor            Vendor?         @relation(fields: [vendorId], references: [id])
-  vendorId          String?
   goldTransaction   GoldLedger?     @relation("GoldMakingCharge", fields: [goldTransactionId], references: [id])
+  vendor            Vendor?         @relation(fields: [vendorId], references: [id])
 
   @@index([companyId])
   @@index([customerId])
@@ -179,13 +177,14 @@ model Vendor {
   phone            String?
   email            String?
   address          String?
-  taxId            String?
+  trn              String?
+  country          String?
   companyId        String
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
-  company          Company      @relation(fields: [companyId], references: [id])
-  goldTransactions GoldLedger[]
   cashTransactions CashLedger[]
+  goldTransactions GoldLedger[]
+  company          Company      @relation(fields: [companyId], references: [id])
 
   @@index([companyId])
 }
@@ -218,11 +217,11 @@ model Account {
 
 enum UserRole {
   SUPER_ADMIN
-  OWNER
   COMPANY_ADMIN
   ACCOUNTANT
   PRODUCTION_STAFF
   VIEWER
+  OWNER
 }
 
 enum SubscriptionStatus {
@@ -234,8 +233,15 @@ enum SubscriptionStatus {
 }
 
 enum TransactionType {
-  RECEIVE
-  PAY
+  METAL_PURCHASE
+  METAL_SALE
+  METAL_RECEIPT
+  METAL_PAYMENT
+  METAL_RECEIPT_RETURN
+  METAL_PAYMENT_RETURN
+  CASH_RECEIPT
+  CASH_PAYMENT
+  MAKING_CHARGE
   ADJUSTMENT
 }
 

@@ -29,6 +29,8 @@ type Customer = {
   name: string
   phone: string | null
   email: string | null
+  trn: string | null
+  country: string | null
   company: { name: string }
   _count: {
     goldTransactions: number
@@ -43,7 +45,8 @@ export function CustomersTable({ customers }: { customers: Customer[] }) {
   const filtered = customers.filter(c => 
     c.name.toLowerCase().includes(search.toLowerCase()) ||
     c.phone?.includes(search) ||
-    c.email?.toLowerCase().includes(search.toLowerCase())
+    c.email?.toLowerCase().includes(search.toLowerCase()) ||
+    c.trn?.toLowerCase().includes(search.toLowerCase())
   )
 
   const handleDelete = async (id: string, name: string) => {

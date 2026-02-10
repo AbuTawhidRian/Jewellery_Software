@@ -11,6 +11,8 @@ interface Customer {
   name: string
   phone: string | null
   email: string | null
+  trn: string | null
+  country: string | null
   company: { name: string }
   _count: {
     goldTransactions: number

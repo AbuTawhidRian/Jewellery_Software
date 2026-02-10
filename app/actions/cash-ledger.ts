@@ -7,7 +7,7 @@ import { z } from 'zod'
 import { TransactionType } from '@prisma/client'
 
 const cashTransactionSchema = z.object({
-  type: z.enum(['RECEIVE', 'PAY', 'ADJUSTMENT']),
+  type: z.enum(['ADJUSTMENT', 'CASH_RECEIPT', 'CASH_PAYMENT']),
   amount: z.coerce.number().positive('Amount must be positive'),
   currency: z.string().min(1, 'Currency is required'),
   notes: z.string().optional().nullable(),
@@ -105,8 +105,16 @@ export async function getCashStats() {
   let totalOut = 0
 
   transactions.forEach(t => {
-    if (t.type === 'RECEIVE') totalIn += Number(t.amount)
-    else totalOut += Number(t.amount)
+    const amount = Number(t.amount)
+    const isInflow = ['CASH_RECEIPT', 'METAL_PURCHASE'].includes(t.type)
+    const isOutflow = ['CASH_PAYMENT', 'METAL_SALE', 'MAKING_CHARGE'].includes(t.type)
+
+    if (isInflow) totalIn += amount
+    else if (isOutflow) totalOut += amount
+    else if (t.type === 'ADJUSTMENT') {
+      if (amount >= 0) totalIn += amount
+      else totalOut += Math.abs(amount)
+    }
   })
 
   return {

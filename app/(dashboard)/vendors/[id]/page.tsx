@@ -88,10 +88,16 @@ export default async function VendorDetailsPage({ params }: PageProps) {
                 <span className="whitespace-pre-wrap">{vendor.address}</span>
               </div>
             )}
-            {vendor.taxId && (
+            {vendor.trn && (
               <div className="pt-2 border-t mt-2">
-                <p className="text-sm font-medium text-muted-foreground">Tax ID</p>
-                <p>{vendor.taxId}</p>
+                <p className="text-sm font-medium text-muted-foreground">TRN Number</p>
+                <p>{vendor.trn}</p>
+              </div>
+            )}
+            {vendor.country && (
+              <div className="pt-2 border-t mt-2">
+                <p className="text-sm font-medium text-muted-foreground">Country</p>
+                <p>{vendor.country}</p>
               </div>
             )}
             {!vendor.phone && !vendor.email && !vendor.address && (

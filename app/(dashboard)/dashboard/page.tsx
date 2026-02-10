@@ -45,29 +45,28 @@ export default async function DashboardPage() {
             <div className="flex items-center gap-2 mt-1">
               <p className="text-xs text-amber-700"> Total Weight: {metrics.goldBalance}g</p>
             </div>
-            {/* Karat Breakdown */}
+            {/* Dynamic Karat Breakdown */}
             <div className="mt-4 space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-amber-800">
-                  <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                  24K Pure
-                </span>
-                <span className="font-medium text-amber-900">{goldBreakdown.k24}g</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-amber-800">
-                  <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                  22K
-                </span>
-                <span className="font-medium text-amber-900">{goldBreakdown.k22}g</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-amber-800">
-                  <span className="w-2 h-2 rounded-full bg-amber-600"></span>
-                  18K
-                </span>
-                <span className="font-medium text-amber-900">{goldBreakdown.k18}g</span>
-              </div>
+              {Object.entries(goldBreakdown).sort((a, b) => {
+                // Try to sort numerically if possible
+                const numA = parseFloat(a[0].replace(/[^0-9.]/g, ''))
+                const numB = parseFloat(b[0].replace(/[^0-9.]/g, ''))
+                if (!isNaN(numA) && !isNaN(numB)) return numB - numA
+                return a[0].localeCompare(b[0])
+              }).map(([karat, balance], index) => {
+                const colors = ['bg-amber-400', 'bg-amber-500', 'bg-amber-600', 'bg-amber-700']
+                const colorClass = colors[index % colors.length]
+                
+                return (
+                  <div key={karat} className="flex items-center justify-between text-sm">
+                    <span className="flex items-center gap-2 text-amber-800">
+                      <span className={`w-2 h-2 rounded-full ${colorClass}`}></span>
+                      {isNaN(Number(karat)) || Number(karat) > 24 ? karat : `${karat}K`}
+                    </span>
+                    <span className="font-medium text-amber-900">{balance}g</span>
+                  </div>
+                )
+              })}
             </div>
           </CardContent>
         </Card>
@@ -117,7 +116,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {metrics.todayRate ? `$${metrics.todayRate}` : 'Not Set'}
+              {metrics.todayRate ? formatCurrencyValue(Number(metrics.todayRate), metrics.baseCurrency) : 'Not Set'}
             </div>
             <p className="text-xs text-muted-foreground">Gold 24K (per gram)</p>
           </CardContent>
@@ -131,7 +130,7 @@ export default async function DashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$0.00</div>
+            <div className="text-2xl font-bold">{formatCurrencyValue(0, metrics.baseCurrency)}</div>
             <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
         </Card>

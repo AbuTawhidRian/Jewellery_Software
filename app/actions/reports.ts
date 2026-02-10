@@ -3,8 +3,8 @@ import { auth } from '@/auth'
 import { prisma } from '@/lib/db'
 import { purityToKarat } from '@/lib/karat-utils'
 
-// Get current user's company
-async function getCurrentUserCompany() {
+// Get current user's company and settings
+async function getCurrentUserCompanySettings() {
   const session = await auth()
   
   if (!session?.user?.email) {
@@ -20,12 +20,20 @@ async function getCurrentUserCompany() {
     throw new Error('User not associated with a company')
   }
 
-  return user.companyId
+  const company = await prisma.company.findUnique({
+    where: { id: user.companyId },
+    select: { id: true, customKarats: true }
+  })
+
+  return {
+    companyId: user.companyId,
+    customKarats: (company?.customKarats as Record<string, number>) || {}
+  }
 }
 
 // Gold Inventory Summary - Aggregate gold by purity/karat
 export async function getGoldInventorySummary() {
-  const companyId = await getCurrentUserCompany()
+  const { companyId, customKarats } = await getCurrentUserCompanySettings()
 
   const goldTransactions = await prisma.goldLedger.findMany({
     where: { companyId },
@@ -49,27 +57,38 @@ export async function getGoldInventorySummary() {
 
     const current = inventoryMap.get(purityKey)!
     
-    if (transaction.type === 'RECEIVE') {
+    if (['METAL_RECEIPT', 'METAL_RECEIPT_RETURN'].includes(transaction.type)) {
       current.receive += weight
-    } else if (transaction.type === 'PAY') {
+    } else if (['METAL_PAYMENT', 'METAL_SALE', 'METAL_PURCHASE', 'METAL_PAYMENT_RETURN'].includes(transaction.type)) {
       current.pay += weight
+    } else if (transaction.type === 'ADJUSTMENT') {
+        if (weight >= 0) current.receive += weight
+        else current.pay += Math.abs(weight)
     }
   })
 
   // Convert to array and calculate balance
-  const inventory = Array.from(inventoryMap.entries()).map(([purity, amounts]) => ({
-    purity: parseFloat(purity),
-    receive: amounts.receive,
-    pay: amounts.pay,
-    balance: amounts.receive - amounts.pay
-  })).sort((a, b) => b.purity - a.purity) // Sort by purity descending (24K first)
+  const inventory = Array.from(inventoryMap.entries()).map(([purity, amounts]) => {
+    const p = parseFloat(purity)
+    return {
+      purity: p,
+      karatLabel: purityToKarat(p, customKarats),
+      receive: amounts.receive,
+      pay: amounts.pay,
+      balance: amounts.receive - amounts.pay
+    }
+  }).sort((a, b) => b.purity - a.purity) // Sort by purity descending (24K first)
 
   return inventory
 }
 
 // Cash Flow Statement - Calculate income, expenses, and balance
 export async function getCashFlowStatement() {
-  const companyId = await getCurrentUserCompany()
+  const session = await auth()
+  if (!session?.user?.email) throw new Error('Unauthorized')
+  const user = await prisma.user.findUnique({ where: { email: session.user.email }, select: { companyId: true }})
+  if (!user?.companyId) throw new Error('Unauthorized')
+  const companyId = user.companyId
 
   const cashTransactions = await prisma.cashLedger.findMany({
     where: { companyId },
@@ -93,9 +112,9 @@ export async function getCashFlowStatement() {
 
     const current = cashFlowMap.get(currency)!
 
-    if (transaction.type === 'RECEIVE') {
+    if (transaction.type === 'CASH_RECEIPT') {
       current.income += amount
-    } else if (transaction.type === 'PAY') {
+    } else if (transaction.type === 'CASH_PAYMENT') {
       current.expenses += amount
     }
   })
@@ -113,7 +132,7 @@ export async function getCashFlowStatement() {
 
 // Customer Transaction History - List all customer transactions
 export async function getCustomerTransactionHistory() {
-  const companyId = await getCurrentUserCompany()
+  const { companyId, customKarats } = await getCurrentUserCompanySettings()
 
   // Get gold transactions
   const goldTransactions = await prisma.goldLedger.findMany({
@@ -170,7 +189,7 @@ export async function getCustomerTransactionHistory() {
       customerName: t.customer?.name || 'Unknown',
       type: t.type,
       transactionType: 'GOLD' as const,
-      amount: `${t.weight}g (${purityToKarat(Number(t.purity))})`,
+      amount: `${t.weight}g (${purityToKarat(Number(t.purity), customKarats)})`,
       notes: t.notes
     })),
     ...cashTransactions.map(t => ({
@@ -187,10 +206,9 @@ export async function getCustomerTransactionHistory() {
 
   return transactions
 }
-
 // Vendor Purchase Summary - Aggregate vendor transactions
 export async function getVendorPurchaseSummary() {
-  const companyId = await getCurrentUserCompany()
+  const { companyId } = await getCurrentUserCompanySettings()
 
   // Get all vendors for the company
   const vendors = await prisma.vendor.findMany({
@@ -220,13 +238,13 @@ export async function getVendorPurchaseSummary() {
   const vendorSummaries = vendors.map(vendor => {
     // Calculate gold purchased (PAY transactions from company perspective)
     const goldPurchased = vendor.goldTransactions
-      .filter(t => t.type === 'PAY')
+      .filter(t => ['METAL_PURCHASE', 'METAL_PAYMENT'].includes(t.type))
       .reduce((sum, t) => sum + parseFloat(t.weight.toString()), 0)
 
     // Calculate cash spent
     const cashByCurrency = new Map<string, number>()
     vendor.cashTransactions
-      .filter(t => t.type === 'PAY')
+      .filter(t => t.type === 'CASH_PAYMENT')
       .forEach(t => {
         const currency = t.currency
         const amount = parseFloat(t.amount.toString())

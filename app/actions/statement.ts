@@ -2,10 +2,11 @@
 
 import { prisma } from '@/lib/db'
 import { auth } from '@/auth'
+import { TransactionType } from '@prisma/client'
 
 interface StatementTransaction {
   date: Date
-  type: 'RECEIVE' | 'PAY' | 'ADJUSTMENT'
+  type: TransactionType
   weight?: number
   purity?: number
   amount?: number
@@ -99,7 +100,8 @@ export async function getCustomerStatement(
   let goldBalance = 0
   const goldTransactions: StatementTransaction[] = goldTx.map(tx => {
     const weight = Number(tx.weight)
-    goldBalance += tx.type === 'RECEIVE' ? weight : -weight
+    const isReceive = ['METAL_RECEIPT', 'METAL_RECEIPT_RETURN'].includes(tx.type)
+    goldBalance += isReceive ? weight : -weight
     
     return {
       date: tx.date,
@@ -117,8 +119,9 @@ export async function getCustomerStatement(
   const cashTransactions: StatementTransaction[] = cashTx.map(tx => {
     const amount = Number(tx.amount)
     const currency = tx.currency
+    const isReceive = ['CASH_RECEIPT', 'METAL_PURCHASE'].includes(tx.type)
     const currentBalance = cashByurrency.get(currency) || 0
-    const newBalance = currentBalance + (tx.type === 'RECEIVE' ? amount : -amount)
+    const newBalance = currentBalance + (isReceive ? amount : -amount)
     cashByurrency.set(currency, newBalance)
     
     return {
@@ -135,7 +138,8 @@ export async function getCustomerStatement(
   const goldSummary = goldTx.reduce(
     (acc, tx) => {
       const weight = Number(tx.weight)
-      if (tx.type === 'RECEIVE') acc.totalReceived += weight
+      const isReceive = ['METAL_RECEIPT', 'METAL_RECEIPT_RETURN'].includes(tx.type)
+      if (isReceive) acc.totalReceived += weight
       else acc.totalPaid += weight
       return acc
     },
@@ -149,7 +153,8 @@ export async function getCustomerStatement(
       cashSummary[tx.currency] = { received: 0, paid: 0, balance: 0 }
     }
     const amount = Number(tx.amount)
-    if (tx.type === 'RECEIVE') {
+    const isReceive = ['CASH_RECEIPT', 'METAL_PURCHASE'].includes(tx.type)
+    if (isReceive) {
       cashSummary[tx.currency].received += amount
     } else {
       cashSummary[tx.currency].paid += amount
@@ -232,7 +237,8 @@ export async function getVendorStatement(
   let goldBalance = 0
   const goldTransactions: StatementTransaction[] = goldTx.map(tx => {
     const weight = Number(tx.weight)
-    goldBalance += tx.type === 'RECEIVE' ? weight : -weight
+    const isReceive = ['METAL_RECEIPT', 'METAL_RECEIPT_RETURN'].includes(tx.type)
+    goldBalance += isReceive ? weight : -weight
     
     return {
       date: tx.date,
@@ -249,8 +255,9 @@ export async function getVendorStatement(
   const cashTransactions: StatementTransaction[] = cashTx.map(tx => {
     const amount = Number(tx.amount)
     const currency = tx.currency
+    const isReceive = ['CASH_RECEIPT', 'METAL_PURCHASE'].includes(tx.type)
     const currentBalance = cashByCurrency.get(currency) || 0
-    const newBalance = currentBalance + (tx.type === 'RECEIVE' ? amount : -amount)
+    const newBalance = currentBalance + (isReceive ? amount : -amount)
     cashByCurrency.set(currency, newBalance)
     
     return {
@@ -267,7 +274,8 @@ export async function getVendorStatement(
   const goldSummary = goldTx.reduce(
     (acc, tx) => {
       const weight = Number(tx.weight)
-      if (tx.type === 'RECEIVE') acc.totalReceived += weight
+      const isReceive = ['METAL_RECEIPT', 'METAL_RECEIPT_RETURN'].includes(tx.type)
+      if (isReceive) acc.totalReceived += weight
       else acc.totalPaid += weight
       return acc
     },
@@ -281,7 +289,8 @@ export async function getVendorStatement(
       cashSummary[tx.currency] = { received: 0, paid: 0, balance: 0 }
     }
     const amount = Number(tx.amount)
-    if (tx.type === 'RECEIVE') {
+    const isReceive = ['CASH_RECEIPT', 'METAL_PURCHASE'].includes(tx.type)
+    if (isReceive) {
       cashSummary[tx.currency].received += amount
     } else {
       cashSummary[tx.currency].paid += amount

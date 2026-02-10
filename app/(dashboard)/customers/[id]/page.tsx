@@ -4,10 +4,11 @@ import { EditCustomerDialog } from '@/components/customers/edit-customer-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { ArrowLeft, Mail, Phone, MapPin, Pencil, Package, Coins, DollarSign } from 'lucide-react'
+import { ArrowLeft, Mail, Phone, MapPin, Pencil, Package, Coins, DollarSign, Globe, FileText } from 'lucide-react'
 import Link from 'next/link'
 import { formatDistance } from 'date-fns'
 import { DownloadStatementDialog } from '@/components/statements/download-statement-dialog'
+import { formatCurrencyValue } from '@/lib/currencies'
 
 export const dynamic = 'force-dynamic'
 
@@ -98,7 +99,19 @@ export default async function CustomerDetailsPage({ params }: { params: Promise<
               <span className="whitespace-pre-wrap">{customer.address}</span>
             </div>
           )}
-          {!customer.phone && !customer.email && !customer.address && (
+          {customer.trn && (
+            <div className="flex items-center gap-3">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span>TRN: <span className="font-medium text-purple-600">{customer.trn}</span></span>
+            </div>
+          )}
+          {customer.country && (
+            <div className="flex items-center gap-3">
+              <Globe className="h-4 w-4 text-muted-foreground" />
+              <span>{customer.country}</span>
+            </div>
+          )}
+          {!customer.phone && !customer.email && !customer.address && !customer.trn && !customer.country && (
             <p className="text-sm text-muted-foreground">No contact information available</p>
           )}
         </CardContent>
@@ -158,7 +171,7 @@ export default async function CustomerDetailsPage({ params }: { params: Promise<
                       <TableRow key={transaction.id}>
                         <TableCell>{formatDistance(new Date(transaction.date), new Date(), { addSuffix: true })}</TableCell>
                         <TableCell className="capitalize">{transaction.type.toLowerCase()}</TableCell>
-                        <TableCell className="text-right">${transaction.amount.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">{formatCurrencyValue(transaction.amount, transaction.currency)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

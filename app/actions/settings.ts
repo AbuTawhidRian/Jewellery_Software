@@ -10,7 +10,6 @@ const companySettingsSchema = z.object({
   name: z.string().min(1, 'Company name is required'),
   country: z.string().min(1, 'Country is required'),
   currency: z.string().min(3).max(3),
-  timezone: z.string().min(1),
   address: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email('Invalid email').optional().or(z.literal('')),
@@ -53,7 +52,6 @@ export async function getCompanySettings() {
     name: company.name,
     country: company.country,
     currency: company.currency,
-    timezone: company.timezone,
     address: company.address,
     phone: company.phone,
     email: company.email,
@@ -77,11 +75,11 @@ export async function updateCompanySettings(data: CompanySettingsFormData) {
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    select: { companyId: true, role: true }
+    select: { companyId: true, role: true, tenantId: true }
   })
 
-  // Only admins can update settings
-  if (!user || !['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
+  // Only admins and owners can update settings
+  if (!user || !['OWNER', 'COMPANY_ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
     throw new Error('Insufficient permissions. Only admins can modify settings.')
   }
 
@@ -99,7 +97,6 @@ export async function updateCompanySettings(data: CompanySettingsFormData) {
       name: validated.name,
       country: validated.country,
       currency: validated.currency,
-      timezone: validated.timezone,
       address: validated.address,
       phone: validated.phone,
       email: validated.email,
@@ -109,6 +106,25 @@ export async function updateCompanySettings(data: CompanySettingsFormData) {
     },
   })
 
+  // If user is OWNER or SUPER_ADMIN, propagate customKarats to all companies in the same tenant
+  if (['OWNER', 'SUPER_ADMIN'].includes(user.role) && user.tenantId) {
+    await prisma.company.updateMany({
+      where: { 
+        tenantId: user.tenantId,
+        id: { not: user.companyId } // Already updated above
+      },
+      data: {
+        customKarats: (validated.customKarats || null) as Prisma.InputJsonValue,
+      }
+    })
+  }
+
   revalidatePath('/settings')
+  revalidatePath('/dashboard')
+  revalidatePath('/companies')
+  revalidatePath('/gold-ledger')
+  revalidatePath('/cash-ledger')
+  revalidatePath('/reports')
+  revalidatePath('/team')
   return company
 }

@@ -15,7 +15,15 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { createCustomer, CustomerFormData } from '@/app/actions/customers'
+import { COUNTRIES } from '@/lib/countries'
 import { toast } from 'sonner'
 
 import { useLanguage } from '@/components/providers/language-provider'
@@ -30,6 +38,8 @@ export function AddCustomerDialog({ children }: { children: React.ReactNode }) {
     phone: '',
     email: '',
     address: '',
+    trn: '',
+    country: '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,6 +55,8 @@ export function AddCustomerDialog({ children }: { children: React.ReactNode }) {
         phone: '',
         email: '',
         address: '',
+        trn: '',
+        country: '',
       })
       router.refresh()
     } catch (error: any) {
@@ -99,6 +111,35 @@ export function AddCustomerDialog({ children }: { children: React.ReactNode }) {
                 placeholder="customer@example.com"
                 disabled={loading}
               />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="trn">TRN Number</Label>
+              <Input
+                id="trn"
+                value={formData.trn}
+                onChange={(e) => setFormData({ ...formData, trn: e.target.value })}
+                placeholder="TRN Number"
+                disabled={loading}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="country">Country</Label>
+              <Select
+                value={formData.country}
+                onValueChange={(value) => setFormData({ ...formData, country: value })}
+                disabled={loading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Country" />
+                </SelectTrigger>
+                <SelectContent>
+                  {COUNTRIES.map((country) => (
+                    <SelectItem key={country.code} value={country.name}>
+                      {country.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="address">{t.table.address}</Label>

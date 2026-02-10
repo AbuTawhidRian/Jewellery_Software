@@ -36,9 +36,10 @@ interface GoldTransaction {
 
 interface GoldTransactionsTableProps {
   transactions: GoldTransaction[]
+  customKarats?: Record<string, number>
 }
 
-export function GoldTransactionsTable({ transactions }: GoldTransactionsTableProps) {
+export function GoldTransactionsTable({ transactions, customKarats = {} }: GoldTransactionsTableProps) {
   const { t } = useLanguage()
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
@@ -99,10 +100,13 @@ export function GoldTransactionsTable({ transactions }: GoldTransactionsTablePro
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t.table.allTypes}</SelectItem>
-            <SelectItem value="RECEIVE">Receive (Gold In)</SelectItem>
-            <SelectItem value="PAY">Pay (Gold Out)</SelectItem>
+            <SelectItem value="METAL_PURCHASE">Metal Purchase</SelectItem>
+            <SelectItem value="METAL_SALE">Metal Sale</SelectItem>
+            <SelectItem value="METAL_RECEIPT">Metal Receipt</SelectItem>
+            <SelectItem value="METAL_PAYMENT">Metal Payment</SelectItem>
+            <SelectItem value="METAL_RECEIPT_RETURN">Metal Receipt Return</SelectItem>
+            <SelectItem value="METAL_PAYMENT_RETURN">Metal Payment Return</SelectItem>
             <SelectItem value="ADJUSTMENT">Adjustment</SelectItem>
-
           </SelectContent>
         </Select>
 
@@ -175,7 +179,7 @@ export function GoldTransactionsTable({ transactions }: GoldTransactionsTablePro
                   </TableCell>
                   <TableCell>
                     <span className="text-sm">
-                      {formatPurity(Number(transaction.purity))}
+                      {formatPurity(Number(transaction.purity), customKarats)}
                     </span>
                   </TableCell>
                   <TableCell>

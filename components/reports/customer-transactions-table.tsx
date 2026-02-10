@@ -2,13 +2,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
+import { TransactionType } from '@prisma/client'
 
 interface CustomerTransaction {
   id: string
   date: Date
   customerId: string
   customerName: string
-  type: 'RECEIVE' | 'PAY' | 'ADJUSTMENT'
+  type: TransactionType
   transactionType: 'GOLD' | 'CASH'
   amount: string
   notes: string | null
@@ -19,6 +20,10 @@ interface CustomerTransactionsTableProps {
 }
 
 export function CustomerTransactionsTable({ transactions }: CustomerTransactionsTableProps) {
+  const isReceiptType = (type: TransactionType) => {
+    return ['CASH_RECEIPT', 'METAL_RECEIPT', 'METAL_RECEIPT_RETURN'].includes(type)
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -51,7 +56,7 @@ export function CustomerTransactionsTable({ transactions }: CustomerTransactions
                     </TableCell>
                     <TableCell>{transaction.customerName}</TableCell>
                     <TableCell>
-                      <Badge variant={transaction.type === 'RECEIVE' ? 'default' : 'secondary'}>
+                      <Badge variant={isReceiptType(transaction.type) ? 'default' : 'secondary'}>
                         {transaction.type}
                       </Badge>
                     </TableCell>

@@ -40,6 +40,7 @@ export function CashLedgerView({ transactions, stats, customers, accounts, vendo
           accounts={accounts}
           vendors={vendors}
           currencies={settings.currencies || ['USD']}
+          defaultCurrency={defaultCurrency}
         >
           <Button>
             <PlusCircle className="mr-2 h-4 w-4" />

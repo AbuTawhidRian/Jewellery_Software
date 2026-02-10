@@ -17,36 +17,13 @@ export interface KaratStandard {
 
 export const KARAT_STANDARDS: KaratStandard[] = [
   {
-    id: 'international',
-    name: 'International Standard',
-    description: 'Commonly used worldwide',
+    id: 'dubai',
+    name: 'Dubai/GCC Standard',
+    description: 'Standard for Middle East (999, 995, TT Bar)',
     mappings: {
-      '24': 0.9999,
-      '23': 0.958,
-      '22': 0.9167,
-      '21': 0.875,
-      '20': 0.8333,
-      '18': 0.750,
-      '14': 0.585,
-      '10': 0.417,
-    }
-  },
-  {
-    id: 'middle_east',
-    name: 'Middle East Standard',
-    description: 'Common in UAE, Saudi Arabia, Qatar',
-    mappings: {
-      '24': 0.9999,
-      '22': 0.916,
-      '21': 0.875,
-      '18': 0.750,
-    }
-  },
-  {
-    id: 'indian',
-    name: 'Indian Standard',
-    description: 'Popular in India and South Asia',
-    mappings: {
+      '999': 0.9990,
+      '995': 0.9950,
+      'TT Bar': 0.9990,
       '24': 0.9999,
       '22': 0.916,
       '21': 0.875,
@@ -73,16 +50,15 @@ export function validateKaratMappings(mappings: Record<string, number>): {
 } {
   const errors: string[] = []
   
-  Object.entries(mappings).forEach(([karat, purity]) => {
-    const k = parseFloat(karat)
-    const p = parseFloat(String(purity))
-    
-    if (isNaN(k) || k <= 0 || k > 24) {
-      errors.push(`Invalid karat value: ${karat}. Must be between 0 and 24.`)
+  Object.entries(mappings).forEach(([label, purity]) => {
+    // Label can be anything now (995, TT Bar, etc.)
+    if (!label || label.trim().length === 0) {
+      errors.push(`Standard label cannot be empty.`)
     }
     
+    const p = parseFloat(String(purity))
     if (isNaN(p) || p < 0 || p > 1.0) {
-      errors.push(`Invalid purity for ${karat}K: ${purity}. Must be between 0 and 1.0.`)
+      errors.push(`Invalid purity for ${label}: ${purity}. Must be between 0 and 1.0.`)
     }
   })
   

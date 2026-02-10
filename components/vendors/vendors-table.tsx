@@ -30,7 +30,8 @@ interface Vendor {
   phone: string | null
   email: string | null
   address: string | null
-  taxId: string | null
+  trn: string | null
+  country: string | null
   _count: {
       goldTransactions: number
       cashTransactions: number
@@ -93,7 +94,8 @@ export function VendorsTable({ vendors }: { vendors: Vendor[] }) {
                   <TableCell className="font-medium">
                     <Link href={`/vendors/${vendor.id}`} className="hover:underline flex flex-col">
                       <span className="font-semibold">{vendor.name}</span>
-                      {vendor.taxId && <span className="text-xs text-muted-foreground">Tax ID: {vendor.taxId}</span>}
+                      {vendor.trn && <span className="text-xs text-muted-foreground">TRN: {vendor.trn}</span>}
+                      {vendor.country && <span className="text-xs text-muted-foreground">{vendor.country}</span>}
                     </Link>
                   </TableCell>
                   <TableCell>

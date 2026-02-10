@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db'
 import { auth } from '@/auth'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { TransactionType } from '@prisma/client'
 
 // Schema for customer validation
 const customerSchema = z.object({
@@ -11,9 +12,46 @@ const customerSchema = z.object({
   phone: z.string().optional(),
   email: z.string().email('Invalid email').optional().or(z.literal('')),
   address: z.string().optional(),
+  trn: z.string().optional(),
+  country: z.string().optional(),
 })
 
 export type CustomerFormData = z.infer<typeof customerSchema>
+
+export type SerializedCustomer = {
+  id: string
+  name: string
+  phone: string | null
+  email: string | null
+  address: string | null
+  trn: string | null
+  country: string | null
+  companyId: string
+  createdAt: Date
+  updatedAt: Date
+  company: {
+    id: string
+    name: string
+    [key: string]: any
+  }
+  goldTransactions: {
+    id: string
+    date: Date
+    weight: number
+    purity: number
+    type: TransactionType
+    makingRate: number | null
+    [key: string]: any
+  }[]
+  cashTransactions: {
+    id: string
+    date: Date
+    amount: number
+    type: TransactionType
+    currency: string
+    [key: string]: any
+  }[]
+}
 
 export async function getCustomers() {
   const session = await auth()
@@ -50,7 +88,7 @@ export async function getCustomers() {
   return customers
 }
 
-export async function getCustomer(id: string) {
+export async function getCustomer(id: string): Promise<SerializedCustomer | null> {
   const session = await auth()
   if (!session?.user?.email) {
     throw new Error('Unauthorized')
@@ -68,7 +106,6 @@ export async function getCustomer(id: string) {
     },
     include: {
       company: true,
-
       goldTransactions: {
         orderBy: { date: 'desc' },
         take: 10
@@ -97,7 +134,7 @@ export async function getCustomer(id: string) {
       ...t,
       amount: Number(t.amount),
     }))
-  }
+  } as SerializedCustomer
 }
 
 export async function createCustomer(data: CustomerFormData) {
@@ -174,8 +211,8 @@ export async function deleteCustomer(id: string) {
     select: { companyId: true, role: true }
   })
 
-  // Only COMPANY_ADMIN and SUPER_ADMIN can delete
-  if (!['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(user?.role || '')) {
+  // Only COMPANY_ADMIN, OWNER and SUPER_ADMIN can delete
+  if (!['OWNER', 'COMPANY_ADMIN', 'SUPER_ADMIN'].includes(user?.role || '')) {
     throw new Error('Insufficient permissions')
   }
 

@@ -30,15 +30,15 @@ import { toast } from 'sonner'
 import { updateCompanySettings } from '@/app/actions/settings'
 import { CURRENCIES } from '@/lib/currencies'
 import { CurrencyMultiSelect } from './currency-multi-select'
-import { KaratEditor } from './karat-editor'
 import { AccountEditor } from './account-editor'
 import { MetalRatesEditor } from './metal-rates-editor'
+import { COUNTRIES, getCountryByName } from '@/lib/countries'
+import { KaratEditor } from './karat-editor'
 
 const settingsSchema = z.object({
   name: z.string().min(1, 'Company name is required'),
   country: z.string().min(1, 'Country is required'),
   currency: z.string().min(3).max(3),
-  timezone: z.string().min(1),
   address: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email('Invalid email').optional().or(z.literal('')),
@@ -52,7 +52,6 @@ interface SettingsFormProps {
     name: string
     country: string
     currency: string
-    timezone: string
     address: string | null
     phone: string | null
     email: string | null
@@ -72,7 +71,6 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
       name: initialData.name || '',
       country: initialData.country || '',
       currency: initialData.currency || 'USD',
-      timezone: initialData.timezone || 'UTC',
       address: initialData.address || '',
       phone: initialData.phone || '',
       email: initialData.email || '',
@@ -94,6 +92,8 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
       setLoading(false)
     }
   }
+
+
 
   return (
     <Form {...form}>
@@ -123,7 +123,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                     <FormItem>
                       <FormLabel>Company Name</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input placeholder="Enter company name" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -136,31 +136,18 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Country</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="timezone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Timezone</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select timezone" />
+                              <SelectValue placeholder="Select country" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="UTC">UTC</SelectItem>
-                            <SelectItem value="Asia/Dhaka">Asia/Dhaka (GMT+6)</SelectItem>
-                            <SelectItem value="Asia/Dubai">Asia/Dubai (GMT+4)</SelectItem>
-                            <SelectItem value="Asia/Yerevan">Asia/Yerevan (GMT+4)</SelectItem>
-                            <SelectItem value="America/New_York">America/New_York (GMT-5)</SelectItem>
+                            {COUNTRIES.map((c) => (
+                              <SelectItem key={c.code} value={c.name}>
+                                {c.name}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -177,7 +164,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                       <FormItem>
                         <FormLabel>Phone Number</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input placeholder="+1 234 567 890" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -190,7 +177,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                       <FormItem>
                         <FormLabel>Email Address</FormLabel>
                         <FormControl>
-                          <Input {...field} type="email" />
+                          <Input placeholder="info@company.com" {...field} type="email" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -205,7 +192,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                     <FormItem>
                       <FormLabel>TRN Number (Tax Registration Number)</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input placeholder="e.g. 123456789012345" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -219,7 +206,7 @@ export function SettingsForm({ initialData }: SettingsFormProps) {
                     <FormItem>
                       <FormLabel>Company Address</FormLabel>
                       <FormControl>
-                        <Textarea {...field} rows={3} />
+                        <Textarea placeholder="Enter full business address" {...field} rows={3} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

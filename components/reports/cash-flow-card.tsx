@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowDownIcon, ArrowUpIcon, WalletIcon } from 'lucide-react'
+import { formatCurrencyValue } from '@/lib/currencies'
 
 interface CashFlowItem {
   currency: string
@@ -38,7 +39,7 @@ export function CashFlowCard({ cashFlow }: CashFlowCardProps) {
                     <div className="flex-1">
                       <p className="text-sm font-medium text-muted-foreground">Income</p>
                       <p className="text-2xl font-bold text-green-600">
-                        {item.income.toFixed(2)}
+                        {formatCurrencyValue(item.income, item.currency)}
                       </p>
                     </div>
                   </div>
@@ -51,7 +52,7 @@ export function CashFlowCard({ cashFlow }: CashFlowCardProps) {
                     <div className="flex-1">
                       <p className="text-sm font-medium text-muted-foreground">Expenses</p>
                       <p className="text-2xl font-bold text-red-600">
-                        {item.expenses.toFixed(2)}
+                        {formatCurrencyValue(item.expenses, item.currency)}
                       </p>
                     </div>
                   </div>
@@ -70,7 +71,7 @@ export function CashFlowCard({ cashFlow }: CashFlowCardProps) {
                       <p className={`text-2xl font-bold ${
                         item.balance >= 0 ? 'text-blue-600' : 'text-orange-600'
                       }`}>
-                        {item.balance.toFixed(2)}
+                        {formatCurrencyValue(item.balance, item.currency)}
                       </p>
                     </div>
                   </div>

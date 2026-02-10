@@ -37,7 +37,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { createCashTransaction } from '@/app/actions/cash-ledger'
 
 const cashTransactionSchema = z.object({
-  type: z.enum(['RECEIVE', 'PAY']),
+  type: z.enum(['CASH_RECEIPT', 'CASH_PAYMENT', 'ADJUSTMENT']),
   amount: z.coerce.number().positive('Amount must be positive'),
   currency: z.string().min(1, 'Currency is required'),
   notes: z.string().optional(),
@@ -54,6 +54,7 @@ interface AddCashTransactionDialogProps {
   accounts: { id: string; name: string; type: string }[]
   vendors: { id: string; name: string }[]
   currencies: string[]
+  defaultCurrency?: string
   children?: React.ReactNode
 }
 
@@ -62,6 +63,7 @@ export function AddCashTransactionDialog({
   accounts,
   vendors,
   currencies,
+  defaultCurrency,
   children
 }: AddCashTransactionDialogProps) {
   const [open, setOpen] = useState(false)
@@ -71,9 +73,9 @@ export function AddCashTransactionDialog({
   const form = useForm<CashTransactionFormValues>({
     resolver: zodResolver(cashTransactionSchema) as Resolver<CashTransactionFormValues>,
     defaultValues: {
-      type: 'PAY',
+      type: 'CASH_PAYMENT',
       amount: 0,
-      currency: currencies[0] || 'USD',
+      currency: defaultCurrency || currencies[0] || 'USD',
       notes: '',
       customerId: null,
       vendorId: null,
@@ -133,8 +135,9 @@ export function AddCashTransactionDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="RECEIVE">Receive (Income / In)</SelectItem>
-                        <SelectItem value="PAY">Pay (Expense / Out)</SelectItem>
+                        <SelectItem value="CASH_RECEIPT">Cash Receipt (Money In)</SelectItem>
+                        <SelectItem value="CASH_PAYMENT">Cash Payment (Money Out)</SelectItem>
+                        <SelectItem value="ADJUSTMENT">Adjustment</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

@@ -34,7 +34,7 @@ export function KaratEditor({ value, onChange }: KaratEditorProps) {
       id: Math.random().toString(36).substr(2, 9),
       karat,
       purity,
-    })).sort((a, b) => Number(b.karat) - Number(a.karat))
+    }))
   )
 
   const handleUpdate = (updatedList: typeof karatList) => {
@@ -78,7 +78,7 @@ export function KaratEditor({ value, onChange }: KaratEditorProps) {
         id: Math.random().toString(36).substr(2, 9),
         karat,
         purity,
-      })).sort((a, b) => Number(b.karat) - Number(a.karat))
+      }))
       handleUpdate(newList)
     }
   }
@@ -87,9 +87,9 @@ export function KaratEditor({ value, onChange }: KaratEditorProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <Label>Karat Standards</Label>
+          <Label>Gold Standards</Label>
           <p className="text-sm text-muted-foreground">
-            Configure decimal purity standard for each karat value (e.g. 0.9160)
+            Configure decimal purity standards (e.g. 22, 995, TT Bar) and their purity (e.g. 0.9160)
           </p>
         </div>
         <Select onValueChange={loadPreset}>
@@ -127,16 +127,13 @@ export function KaratEditor({ value, onChange }: KaratEditorProps) {
             {karatList.map((item) => (
               <TableRow key={item.id}>
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      value={item.karat}
-                      onChange={(e) => updateItem(item.id, 'karat', e.target.value)}
-                      placeholder="22"
-                      className="w-20"
-                    />
-                    <span>K</span>
-                  </div>
+                  <Input
+                    type="text"
+                    value={item.karat}
+                    onChange={(e) => updateItem(item.id, 'karat', e.target.value)}
+                    placeholder="22 or 995"
+                    className="w-32"
+                  />
                 </TableCell>
                 <TableCell>
                   <Input

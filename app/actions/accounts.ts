@@ -125,7 +125,7 @@ export async function deleteAccount(id: string) {
     select: { companyId: true, role: true }
   })
 
-  if (!['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(user?.role || '')) {
+  if (!['OWNER', 'COMPANY_ADMIN', 'SUPER_ADMIN'].includes(user?.role || '')) {
     throw new Error('Insufficient permissions')
   }
 
